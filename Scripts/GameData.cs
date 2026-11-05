@@ -26,6 +26,7 @@ public sealed class SaveData
     public int Coins { get; set; } = 100;
     public int CompletedOrders { get; set; }
     public int TotalMerges { get; set; }
+    public CardAlbumState Album { get; set; } = new();
     public TileData?[] Tiles { get; set; } = new TileData?[FoodCatalog.CellCount];
     public List<OrderData> Orders { get; set; } = new();
 }
@@ -55,6 +56,7 @@ public static class FoodCatalog
 public sealed class GameData
 {
     private readonly Random _random = new();
+    public CardAlbum Cards { get; }
     public SaveData State { get; private set; } = new();
     public int Selected { get; private set; } = -1;
     public int HintOne { get; private set; } = -1;
@@ -62,7 +64,25 @@ public sealed class GameData
     public string Message { get; private set; } = "Merge two matching items to discover something new.";
     public int ExperienceRequired => 65 + State.Level * 35;
 
-    public GameData() => NewGame();
+    public GameData()
+    {
+        Cards = new CardAlbum(this);
+        NewGame();
+    }
+
+    public void AppendMessage(string extra) => Message += extra;
+    public void SetMessage(string message) => Message = message;
+
+    public void GrantAlbumReward(int coins, int xp)
+    {
+        State.Coins += coins;
+        State.Experience += xp;
+        while (State.Experience >= ExperienceRequired)
+        {
+            State.Experience -= ExperienceRequired;
+            State.Level++;
+        }
+    }
 
     public void NewGame()
     {
@@ -92,6 +112,8 @@ public sealed class GameData
         State.Experience = Math.Max(0, State.Experience);
         State.CompletedOrders = Math.Max(0, State.CompletedOrders);
         State.TotalMerges = Math.Max(0, State.TotalMerges);
+        State.Album ??= new CardAlbumState();
+        CardAlbum.Normalize(State.Album);
         while (State.Orders.Count < 3) State.Orders.Add(GenerateOrder());
         if (State.Orders.Count > 3) State.Orders = State.Orders.Take(3).ToList();
         Selected = -1;
@@ -169,6 +191,7 @@ public sealed class GameData
             State.Tiles[from] = null;
             State.TotalMerges++;
             Message = "MERGED! Discovered " + FoodCatalog.Name(source.Family, source.Tier + 1) + ".";
+            Cards.OnMergeCompleted();
         }
         else
         {
@@ -216,6 +239,7 @@ public sealed class GameData
         Message = levels > 0
             ? "ORDER COMPLETE! +" + order.Coins + " coins. Level " + State.Level + " reached!"
             : "ORDER COMPLETE! +" + order.Coins + " coins and +" + order.Experience + " XP.";
+        Cards.OnOrderCompleted();
         return true;
     }
 
