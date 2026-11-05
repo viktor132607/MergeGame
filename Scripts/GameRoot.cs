@@ -20,6 +20,11 @@ public partial class GameRoot : Control
     private CardAlbumView _album = null!;
     private TownView _townView = null!;
     private Label _albumCount = null!;
+    private OptionButton _generatorChoice = null!;
+    private FoodPreview _generatorPreview = null!;
+    private Label _generatorInfo = null!;
+    private int _knownGenerators = -1;
+    private CollectionView _collections = null!;
     private bool _resetPending;
 
     private static readonly Color Navy = new("#316274");
@@ -105,6 +110,18 @@ public partial class GameRoot : Control
         _townView = new TownView(_game);
         _townView.Changed += () => { Save(); Refresh(); };
         AddChild(_townView);
+
+        _collections = new CollectionView(_game);
+        _collections.SelectRequested += family =>
+        {
+            if (_game.SelectGenerator(family))
+            {
+                Save();
+                Refresh();
+            }
+            _collections.Close();
+        };
+        AddChild(_collections);
     }
 
     private void BuildHeader(VBoxContainer parent)
@@ -145,6 +162,9 @@ public partial class GameRoot : Control
         var townButton = Button("BUILD TOWN", new Color("#C27C51"), ShowTown, 56);
         townButton.CustomMinimumSize = new Vector2(120, 56);
         row.AddChild(townButton);
+        var collectionsButton = Button("COLLECTIONS", new Color("#59A7B8"), ShowCollections, 56);
+        collectionsButton.CustomMinimumSize = new Vector2(135, 56);
+        row.AddChild(collectionsButton);
     }
 
     private static PanelContainer Stat(string name, Label value, Color fill, float width)
@@ -161,48 +181,94 @@ public partial class GameRoot : Control
 
     private void BuildGenerators(HBoxContainer middle)
     {
-        var panel = Panel(new Color("#E9F6D9"), 10, new Color("#C5DFB5"), 2, 19);
-        panel.CustomMinimumSize = new Vector2(133, 0);
+        var panel = Panel(new Color("#E9F6D9"), 13, new Color("#C5DFB5"), 2, 19);
+        panel.CustomMinimumSize = new Vector2(245, 0);
         middle.AddChild(panel);
 
         var column = new VBoxContainer();
-        column.AddThemeConstantOverride("separation", 10);
+        column.AddThemeConstantOverride("separation", 12);
         panel.AddChild(column);
-        var heading = LabelText("GENERATORS", 13, DeepTeal, true);
+        var heading = LabelText("MERGE GENERATORS", 17, DeepTeal, true);
         heading.HorizontalAlignment = HorizontalAlignment.Center;
         column.AddChild(heading);
 
-        string[] names = { "FRUITS", "BAKERY", "DRINKS" };
-        Color[] fills = { new("#F7AA75"), new("#EFC26F"), new("#89D4D8") };
-        for (int family = 0; family < 3; family++)
+        var previewPanel = Panel(new Color("#F9DFAC"), 9, new Color("#FBEACB"), 2, 17);
+        previewPanel.CustomMinimumSize = new Vector2(0, 167);
+        column.AddChild(previewPanel);
+        var previewColumn = new VBoxContainer();
+        previewColumn.AddThemeConstantOverride("separation", 3);
+        previewPanel.AddChild(previewColumn);
+        _generatorPreview = new FoodPreview
         {
-            int index = family;
-            var card = Panel(fills[family], 7, new Color("#FFFFFF", 0.8f), 2, 15);
-            card.SizeFlagsVertical = SizeFlags.ExpandFill;
-            column.AddChild(card);
+            Family = 0, Tier = 5,
+            CustomMinimumSize = new Vector2(0, 116),
+            SizeFlagsVertical = SizeFlags.ExpandFill
+        };
+        previewColumn.AddChild(_generatorPreview);
 
-            var content = new VBoxContainer();
-            content.AddThemeConstantOverride("separation", 2);
-            card.AddChild(content);
-            var preview = new FoodPreview
-            {
-                Family = family,
-                Tier = family == 0 ? 7 : family == 1 ? 5 : 4,
-                CustomMinimumSize = new Vector2(0, 60),
-                SizeFlagsVertical = SizeFlags.ExpandFill
-            };
-            content.AddChild(preview);
-            var label = LabelText(names[family], 12, Brown, true);
-            label.HorizontalAlignment = HorizontalAlignment.Center;
-            content.AddChild(label);
-            var button = Button("FREE +", new Color("#59B866"),
-                () => Spawn(index), 33);
-            content.AddChild(button);
+        _generatorInfo = LabelText("ORCHARD BASKET", 13, Brown, true, true);
+        _generatorInfo.HorizontalAlignment = HorizontalAlignment.Center;
+        previewColumn.AddChild(_generatorInfo);
+
+        column.AddChild(LabelText("SELECT AN UNLOCKED COLLECTION", 11, DeepTeal, true, true));
+        _generatorChoice = new OptionButton
+        {
+            CustomMinimumSize = new Vector2(0, 42),
+            FitToLongestItem = false,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            MouseDefaultCursorShape = CursorShape.PointingHand
+        };
+        _generatorChoice.AddThemeFontSizeOverride("font_size", 13);
+        _generatorChoice.ItemSelected += index =>
+        {
+            int family = _generatorChoice.GetItemId((int)index);
+            if (_game.SelectGenerator(family)) Changed(true);
+        };
+        column.AddChild(_generatorChoice);
+
+        var spawn = Button("GENERATE FREE ITEM +", new Color("#60B96B"),
+            () => Spawn(_game.State.SelectedGenerator), 56);
+        column.AddChild(spawn);
+        column.AddChild(LabelText("ENERGY: UNLIMITED", 13, Teal, true));
+        column.AddChild(new HSeparator());
+        column.AddChild(LabelText("STARTER GENERATORS", 12, DeepTeal, true));
+        foreach (int starter in new[] { 0, 1, 2 })
+        {
+            int family = starter;
+            column.AddChild(Button(CollectionCatalog.GeneratorNames[family],
+                new Color("#8BBDA1"), () =>
+                {
+                    if (_game.SelectGenerator(family)) Changed(true);
+                    Spawn(family);
+                }, 39));
         }
+        column.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
+        column.AddChild(LabelText("BUILD NEW LOCATIONS TO UNLOCK 20 MORE ITEM CHAINS", 12,
+            new Color("#588C83"), true, true));
+        column.AddChild(Button("VIEW ALL COLLECTIONS", new Color("#4E9DAA"),
+            ShowCollections, 43));
+    }
 
-        var energy = LabelText("⚡  UNLIMITED", 12, new Color("#258A87"), true);
-        energy.HorizontalAlignment = HorizontalAlignment.Center;
-        column.AddChild(energy);
+    private void RefreshGenerators()
+    {
+        if (_generatorChoice == null) return;
+        int[] unlocked = CollectionCatalog.UnlockedFamilies(_game.Town).ToArray();
+        if (_knownGenerators != unlocked.Length)
+        {
+            _generatorChoice.Clear();
+            foreach (int family in unlocked)
+                _generatorChoice.AddItem(CollectionCatalog.FamilyNames[family], family);
+            _knownGenerators = unlocked.Length;
+        }
+        int selected = _game.State.SelectedGenerator;
+        int index = Array.IndexOf(unlocked, selected);
+        if (index < 0) index = 0;
+        _generatorChoice.Select(index);
+        _generatorPreview.Family = unlocked[index];
+        _generatorPreview.Tier = 5;
+        _generatorPreview.QueueRedraw();
+        _generatorInfo.Text = CollectionCatalog.GeneratorNames[unlocked[index]] +
+            "  (" + unlocked.Length + "/" + CollectionCatalog.TotalCount + ")";
     }
 
     private void BuildBoard(HBoxContainer middle)
@@ -372,6 +438,11 @@ public partial class GameRoot : Control
         _townView.Open();
     }
 
+    private void ShowCollections()
+    {
+        _collections.Open();
+    }
+
     private void BoardAction(bool changed)
     {
         _resetPending = false;
@@ -415,6 +486,7 @@ public partial class GameRoot : Control
                            "  |  PACKS " + (_game.Cards.State.Packs + _game.Cards.State.PremiumPacks);
         _progress.Value = 100.0 * _game.State.Experience / _game.ExperienceRequired;
         _status.Text = _game.Message;
+        RefreshGenerators();
         RebuildOrders();
         _board.QueueRedraw();
     }
@@ -422,6 +494,15 @@ public partial class GameRoot : Control
     public override void _UnhandledKeyInput(InputEvent @event)
     {
         if (@event is not InputEventKey key || !key.Pressed || key.Echo) return;
+        if (_collections.Visible)
+        {
+            if (key.Keycode == Key.Escape)
+            {
+                _collections.Close();
+                GetViewport().SetInputAsHandled();
+            }
+            return;
+        }
         if (_townView.Visible)
         {
             if (key.Keycode == Key.Escape)
