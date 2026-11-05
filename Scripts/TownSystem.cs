@@ -33,7 +33,7 @@ public readonly record struct BuildingDefinition(int Id, string Name, string Des
 public static class TownCatalog
 {
     public const int MaxStage = 3;
-    public const int BuildingCount = 6;
+    public const int BuildingCount = 20;
     public static readonly string[] MaterialNames = { "Wood", "Bricks", "Glass", "Hardware" };
     public static readonly string[] MaterialIcons = { "wood", "bricks", "glass", "hardware" };
     public static readonly BuildingDefinition[] Buildings =
@@ -43,10 +43,25 @@ public static class TownCatalog
         new(2, "Seaside Bakery", "Fresh pastries overlooking the bay.", 3),
         new(3, "Sunset Hotel", "A beautiful getaway for visitors.", 5),
         new(4, "Ocean Marina", "Boat excursions and a lively dock.", 7),
-        new(5, "Island Lighthouse", "A bright beacon above the ocean.", 9)
+        new(5, "Island Lighthouse", "A bright beacon above the ocean.", 9),
+        new(6, "Tropical Restaurant", "A lively seaside dining terrace.", 11),
+        new(7, "Fruit Orchard", "A grove full of sweet tropical fruit.", 13),
+        new(8, "Ice Cream Parlor", "Frozen treats and colorful scoops.", 15),
+        new(9, "Souvenir Shop", "Handcrafted gifts for island visitors.", 17),
+        new(10, "Beach Bungalows", "Cozy cottages on the waterfront.", 19),
+        new(11, "Fishing Pier", "A wooden pier for fishing boats.", 21),
+        new(12, "Botanical Garden", "Flowers and shaded island paths.", 23),
+        new(13, "Music Pavilion", "Open-air stage for coastal concerts.", 25),
+        new(14, "Surf School", "Boards, lessons and ocean adventures.", 27),
+        new(15, "Spa Retreat", "Relaxing resort with garden pools.", 29),
+        new(16, "Aquarium", "See the colorful creatures of the reef.", 31),
+        new(17, "Adventure Park", "Climbing, games and rides for visitors.", 33),
+        new(18, "Island Museum", "Discover the history of the island.", 35),
+        new(19, "Grand Resort", "The most luxurious destination on the island.", 40)
     };
 
-    private static readonly ConstructionCost[,] Cost =
+    // The original six buildings retain precisely the same prices for saved games.
+    private static readonly ConstructionCost[,] LegacyCost =
     {
         { new(100, 5, 3, 0, 1), new(240, 10, 8, 3, 3), new(480, 16, 13, 7, 6) },
         { new(140, 6, 3, 1, 1), new(300, 11, 9, 4, 4), new(580, 18, 14, 9, 7) },
@@ -60,7 +75,15 @@ public static class TownCatalog
     {
         if (id < 0 || id >= BuildingCount || nextStage < 1 || nextStage > MaxStage)
             throw new ArgumentOutOfRangeException();
-        return Cost[id, nextStage - 1];
+        if (id < 6) return LegacyCost[id, nextStage - 1];
+        int index = id - 6;
+        int multiplier = nextStage;
+        return new ConstructionCost(
+            (220 + index * 85) * multiplier * multiplier,
+            (7 + index * 2) * multiplier,
+            (5 + index * 2) * multiplier,
+            (2 + index) * multiplier,
+            (2 + (index * 3) / 2) * multiplier);
     }
 }
 
