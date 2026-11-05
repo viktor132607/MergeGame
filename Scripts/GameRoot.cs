@@ -46,6 +46,9 @@ public partial class GameRoot : Control
             TownChecks.Run();
             CollectionChecks.Run();
             SpawnerChecks.Run();
+            if (!GameArtTextures.CheckCatalog(out string missingArtwork))
+                throw new InvalidOperationException("Artwork verification failed: " + missingArtwork);
+            GD.Print("ARTWORK TESTS PASSED: 230 item textures, 23 generators, component textures");
             _album.Open();
             _townView.Open();
         }
