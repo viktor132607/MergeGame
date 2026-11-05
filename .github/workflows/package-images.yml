@@ -1,0 +1,41 @@
+name: Package All Game Images
+on:
+  push:
+    paths:
+      - '.github/workflows/package-images.yml'
+  workflow_dispatch:
+
+jobs:
+  package-images:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout all assets
+        uses: actions/checkout@v4
+      - name: Verify all 255 game images and create ZIP archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          total=$(find Assets -type f \( -iname '*.svg' -o -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.gif' \) | wc -l)
+          items=$(find Assets/Items -type f -name '*.svg' | wc -l)
+          buildings=$(find Assets/Buildings -type f -name '*.svg' | wc -l)
+          materials=$(find Assets/Materials -type f -name '*.svg' | wc -l)
+          backgrounds=$(find Assets/UI -type f -name '*.svg' | wc -l)
+          echo "Total: $total; items: $items; buildings: $buildings; materials: $materials; UI: $backgrounds"
+          test "$total" -eq 255
+          test "$items" -eq 230
+          test "$buildings" -eq 20
+          test "$materials" -eq 4
+          test "$backgrounds" -eq 1
+          mkdir -p output
+          zip -q -r output/MergeHarvest-All-Images.zip Assets -x '*~' '*.import' '*.uid'
+          unzip -t output/MergeHarvest-All-Images.zip
+          test "$(unzip -Z1 output/MergeHarvest-All-Images.zip | grep -E '\.(svg|png|jpg|jpeg|webp|gif)$' | wc -l)" -eq 255
+      - name: Upload complete images ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: MergeHarvest-All-Images
+          path: output/MergeHarvest-All-Images.zip
+          if-no-files-found: error
+          retention-days: 90
