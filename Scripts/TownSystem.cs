@@ -147,8 +147,12 @@ public sealed class TownSystem
         {
             int family = CollectionCatalog.FamilyForBuilding(id);
             _game.State.SelectedGenerator = family;
-            _game.SetMessage(TownCatalog.Buildings[id].Name + " built! NEW MERGE COLLECTION: " +
-                CollectionCatalog.FamilyNames[family] + " — 10 items and an unlimited generator unlocked. +1 card pack!");
+            if (_game.PlaceUnlockedGenerator(family))
+                _game.SetMessage(TownCatalog.Buildings[id].Name +
+                    " built! Its spawner is now on the merge board. Tap for items and generator parts.");
+            else
+                _game.SetMessage(TownCatalog.Buildings[id].Name +
+                    " built! Make room on your merge board, then place its generator from the sidebar.");
         }
         else
             _game.SetMessage(TownCatalog.Buildings[id].Name + " upgraded to stage " + stage +
