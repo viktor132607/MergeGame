@@ -245,7 +245,7 @@ public partial class CardAlbumView : Control
             {
                 var line = L((result.NewCard ? "NEW  " : "+" + result.Card.Rarity + " ★  ") +
                     result.Card.Name, 12,
-                    result.NewCard ? Teal : Brown, result.NewCard, true);
+                    result.NewCard ? Teal : Ink, result.NewCard, true);
                 _revealArea.AddChild(line);
             }
         }
