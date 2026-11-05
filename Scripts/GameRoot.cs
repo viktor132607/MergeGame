@@ -228,10 +228,10 @@ public partial class GameRoot : Control
         };
         column.AddChild(_generatorChoice);
 
-        var spawn = Button("GENERATE FREE ITEM +", new Color("#60B96B"),
+        var spawn = Button("TAP SPAWNER / PLACE +", new Color("#60B96B"),
             () => Spawn(_game.State.SelectedGenerator), 56);
         column.AddChild(spawn);
-        column.AddChild(LabelText("ENERGY: UNLIMITED", 13, Teal, true));
+        column.AddChild(LabelText("BOARD SPAWNERS • ENERGY: UNLIMITED", 13, Teal, true));
         column.AddChild(new HSeparator());
         column.AddChild(LabelText("STARTER GENERATORS", 12, DeepTeal, true));
         foreach (int starter in new[] { 0, 1, 2 })
@@ -245,7 +245,7 @@ public partial class GameRoot : Control
                 }, 39));
         }
         column.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
-        column.AddChild(LabelText("BUILD NEW LOCATIONS TO UNLOCK 20 MORE ITEM CHAINS", 12,
+        column.AddChild(LabelText("BUILD LOCATIONS TO PLACE NEW SPAWNERS. MERGE PARTS AND GENERATORS.", 12,
             new Color("#588C83"), true, true));
         column.AddChild(Button("VIEW ALL COLLECTIONS", new Color("#4E9DAA"),
             ShowCollections, 43));
@@ -270,7 +270,8 @@ public partial class GameRoot : Control
         _generatorPreview.Tier = 5;
         _generatorPreview.QueueRedraw();
         _generatorInfo.Text = CollectionCatalog.GeneratorNames[unlocked[index]] +
-            "  (" + unlocked.Length + "/" + CollectionCatalog.TotalCount + ")";
+            "  (" + unlocked.Length + "/" + CollectionCatalog.TotalCount + ")" +
+            (_game.HasGeneratorOrPart(unlocked[index]) ? " • ON BOARD" : " • PLACE");
     }
 
     private void BuildBoard(HBoxContainer middle)
