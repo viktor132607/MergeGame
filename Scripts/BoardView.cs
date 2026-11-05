@@ -11,7 +11,7 @@ public partial class BoardView : Control
     private Vector2 _pointer;
     private int _sparkTile = -1;
     private float _sparkTime;
-    private const float Gap = 3f;
+    private const float Gap = 5f;
 
     public event Action<bool>? ActionFinished;
 
@@ -118,10 +118,10 @@ public partial class BoardView : Control
         float boardWidth = cell * FoodCatalog.Columns + Gap * (FoodCatalog.Columns - 1);
         float boardHeight = cell * FoodCatalog.Rows + Gap * (FoodCatalog.Rows - 1);
 
-        var bezel = Style(new Color("#D48E84"), new Color("#F9C8AF"), 6, 20);
-        DrawStyleBox(bezel, new Rect2(x - 11, y - 11, boardWidth + 22, boardHeight + 22));
-        DrawStyleBox(Style(new Color("#D78C85"), new Color("#B97873"), 1, 11),
-            new Rect2(x - 1, y - 1, boardWidth + 2, boardHeight + 2));
+        var bezel = Style(new Color("#D9789B"), new Color("#FFF7D2"), 9, 24);
+        DrawStyleBox(bezel, new Rect2(x - 16, y - 16, boardWidth + 32, boardHeight + 32));
+        DrawStyleBox(Style(new Color("#C96C91"), new Color("#F9E3B6"), 2, 13),
+            new Rect2(x - 5, y - 5, boardWidth + 10, boardHeight + 10));
 
         for (int i = 0; i < FoodCatalog.CellCount; i++)
         {
@@ -129,8 +129,8 @@ public partial class BoardView : Control
             int col = i % FoodCatalog.Columns;
             var square = new Rect2(x + col * (cell + Gap), y + row * (cell + Gap), cell, cell);
             bool alternate = (row + col) % 2 == 0;
-            var baseColor = alternate ? new Color("#F9C9C4") : new Color("#ECAFAD");
-            DrawStyleBox(Style(baseColor, new Color("#F9DDD2"), 1, 4), square);
+            var baseColor = alternate ? new Color("#FFE0DC") : new Color("#F7B6CB");
+            DrawStyleBox(Style(baseColor, new Color("#FBECE7"), 2, 10), square);
 
             MergeHarvest.TileData? tile = _game.State.Tiles[i];
             if (tile == null)
@@ -140,10 +140,16 @@ public partial class BoardView : Control
                 continue;
             }
 
-            var plate = new Rect2(square.Position + new Vector2(3f, 4f),
-                                  square.Size - new Vector2(6f, 9f));
-            DrawStyleBox(Style(alternate ? new Color("#FBE4D8") : new Color("#F9D8D1"),
-                new Color("#FFFFFF", 0.22f), 1, 10), plate);
+            var plate = new Rect2(square.Position + new Vector2(5f, 5f),
+                                  square.Size - new Vector2(10f, 12f));
+            DrawStyleBox(Style(new Color("#9D5C79", 0.14f),
+                new Color("#B0637D", 0.09f), 1, 13),
+                plate + new Vector2(1f, 4f));
+            DrawStyleBox(Style(alternate ? new Color("#FFF4E7") : new Color("#FFE5E1"),
+                new Color("#FFFFFF", 0.82f), 2, 13), plate);
+            DrawLine(plate.Position + new Vector2(8f, 5f),
+                plate.Position + new Vector2(plate.Size.X * 0.59f, 5f),
+                new Color("#FFFFFF", 0.56f), 3f, true);
 
             bool selected = _game.Selected == i;
             bool hinted = _game.HintOne == i || _game.HintTwo == i;
@@ -155,9 +161,9 @@ public partial class BoardView : Control
                 DrawCornerMarks(plate, selected ? new Color("#15D8A2") : new Color("#F8D249"));
             }
 
-            float scale = Mathf.Clamp(cell * 0.49f, 20f, 37f);
+            float scale = Mathf.Clamp(cell * 0.58f, 25f, 63f);
             if (tile.Kind == TileKind.Item)
-                FoodArt.Draw(this, square.GetCenter() + new Vector2(0, -2f), scale,
+                FoodArt.Draw(this, square.GetCenter() + new Vector2(0, -4f), scale,
                     tile.Family, tile.Tier);
             else
                 SpawnerArt.Draw(this, square.GetCenter() + new Vector2(0, -2f),
@@ -168,7 +174,7 @@ public partial class BoardView : Control
             DrawCircle(square.Position + new Vector2(cell - 10f, 11f), 10f,
                 tile.Kind == TileKind.Generator ? new Color("#6FDBC2") :
                 tile.Kind == TileKind.GeneratorPart ? new Color("#BC93F5") :
-                new Color("#F8D45B"));
+                new Color("#FFD16A"));
             DrawCircle(square.Position + new Vector2(cell - 10f, 11f), 8f,
                 new Color("#FFF3BF"));
             DrawString(GetThemeDefaultFont(), square.Position + new Vector2(cell - 20f, 16f),
