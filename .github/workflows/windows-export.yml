@@ -1,0 +1,48 @@
+name: Export Windows Game
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  export-windows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Download Godot 4.4.1 .NET editor and export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable
+          curl --fail --location --retry 3 "$BASE/Godot_v4.4.1-stable_mono_linux_x86_64.zip" --output /tmp/godot-mono.zip
+          curl --fail --location --retry 3 "$BASE/Godot_v4.4.1-stable_mono_export_templates.tpz" --output /tmp/godot-templates.tpz
+          unzip -q /tmp/godot-mono.zip -d /tmp/godot
+          unzip -q /tmp/godot-templates.tpz -d /tmp/godot-templates
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable.mono"
+          cp -a /tmp/godot-templates/templates/. "$HOME/.local/share/godot/export_templates/4.4.1.stable.mono/"
+          GODOT=$(find /tmp/godot -type f -name 'Godot_v4.4.1-stable_mono_linux.x86_64' | head -n 1)
+          chmod +x "$GODOT"
+          echo "GODOT_BIN=$GODOT" >> "$GITHUB_ENV"
+      - name: Restore and compile game
+        run: |
+          dotnet restore MergeHarvest.csproj
+          dotnet build MergeHarvest.csproj -c Release --no-restore
+      - name: Import Godot resources
+        run: |
+          "$GODOT_BIN" --headless --path . --editor --import --quit
+      - name: Export Windows executable
+        run: |
+          mkdir -p dist
+          "$GODOT_BIN" --headless --path . --export-release "Windows Desktop" "dist/MergeHarvest.exe"
+          test -s dist/MergeHarvest.exe
+          find dist -type f -maxdepth 4 -print
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MergeHarvest-Windows
+          path: dist/
+          if-no-files-found: error
