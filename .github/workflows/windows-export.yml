@@ -43,6 +43,7 @@ jobs:
           grep -q "CARD ALBUM TESTS PASSED" /tmp/merge-game-smoke.log
           grep -q "TOWN TESTS PASSED" /tmp/merge-game-smoke.log
           grep -q "COLLECTION TESTS PASSED" /tmp/merge-game-smoke.log
+          grep -q "SPAWNER TESTS PASSED" /tmp/merge-game-smoke.log
           if grep -E 'ERROR:|Unhandled Exception|FATAL:' /tmp/merge-game-smoke.log; then
             echo "Game scene produced runtime errors"
             exit 1

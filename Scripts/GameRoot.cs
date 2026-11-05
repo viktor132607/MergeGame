@@ -45,6 +45,7 @@ public partial class GameRoot : Control
             CardAlbumChecks.Run();
             TownChecks.Run();
             CollectionChecks.Run();
+            SpawnerChecks.Run();
             _album.Open();
             _townView.Open();
         }
