@@ -14,10 +14,20 @@ public static class TownChecks
     {
         var game = new GameData();
         var town = game.Town;
-        Check(TownCatalog.BuildingCount == 6, "six buildings");
+        Check(TownCatalog.BuildingCount == 20, "twenty buildings");
+        Check(TownCatalog.Buildings.Length == 20, "twenty building definitions");
+        Check(TownCatalog.Buildings[19].UnlockLevel == 40, "final building unlock level");
+        for (int i = 0; i < TownCatalog.BuildingCount; i++)
+        {
+            Check(TownCatalog.Buildings[i].Id == i, "stable building ID " + i);
+            Check(TownCatalog.GetCost(i, 1).Coins > 0, "stage one cost " + i);
+            Check(TownCatalog.GetCost(i, 3).Coins > TownCatalog.GetCost(i, 1).Coins,
+                "upgrade costs grow " + i);
+        }
         Check(town.Stage(0) == 0, "new town starts without buildings");
         Check(!town.CanBuild(0), "materials must be collected");
         Check(!town.Unlocked(5), "high-level buildings locked");
+        Check(!town.Unlocked(19), "grand resort locked until level 40");
 
         game.State.CompletedOrders = 1;
         town.OnOrderCompleted();
@@ -45,10 +55,20 @@ public static class TownChecks
         Check(town.Stage(0) == 3, "all three stages complete");
         Check(!town.Construct(0), "prevent upgrades beyond final stage");
 
+        game.State.Level = 40;
+        Check(town.Unlocked(19), "grand resort unlocked at level 40");
+        game.State.Coins = 100000;
+        game.State.Town.Materials = new[] { 1000, 1000, 1000, 1000 };
+        for (int i = 6; i < TownCatalog.BuildingCount; i++)
+            for (int stage = 1; stage <= 3; stage++)
+                Check(town.Construct(i), "new building " + i + " stage " + stage);
+        Check(town.Stage(19) == 3, "grand resort reaches stage three");
+        Check(!town.Construct(19), "grand resort max stage");
         var saved = game.State;
         var restored = new GameData();
         Check(restored.Restore(saved), "restore town data");
         Check(restored.Town.Stage(0) == 3, "building stage is persisted");
+        Check(restored.Town.Stage(19) == 3, "new building stage is persisted");
         Check(restored.State.Town.Materials[0] == game.State.Town.Materials[0],
             "materials are persisted");
 
