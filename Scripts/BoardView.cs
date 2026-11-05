@@ -132,7 +132,7 @@ public partial class BoardView : Control
             var baseColor = alternate ? new Color("#F9C9C4") : new Color("#ECAFAD");
             DrawStyleBox(Style(baseColor, new Color("#F9DDD2"), 1, 4), square);
 
-            TileData? tile = _game.State.Tiles[i];
+            MergeHarvest.TileData? tile = _game.State.Tiles[i];
             if (tile == null)
             {
                 if (row % 3 == 0 && col % 4 == 0)
