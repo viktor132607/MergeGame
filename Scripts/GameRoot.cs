@@ -59,33 +59,33 @@ public partial class GameRoot : Control
 
     private void Build()
     {
-        var backdrop = new BeachBackdrop { MouseFilter = MouseFilterEnum.Ignore };
-        backdrop.SetAnchorsPreset(LayoutPreset.FullRect);
-        AddChild(backdrop);
-
-        var center = new CenterContainer();
-        center.SetAnchorsPreset(LayoutPreset.FullRect);
-        AddChild(center);
-
-        var main = Panel(new Color("#167F78"), 17, new Color("#FFF1B9"), 4, 26);
-        main.CustomMinimumSize = new Vector2(1760, 1020);
-        center.AddChild(main);
-
-        var vertical = new VBoxContainer();
-        vertical.AddThemeConstantOverride("separation", 8);
-        main.AddChild(vertical);
-
-        BuildHeader(vertical);
-
-        var awning = new AwningView
+        // The art is a real imported game texture, not a placeholder color field.
+        var scenic = new TextureRect
         {
-            CustomMinimumSize = new Vector2(0, 28),
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            Texture = GD.Load<Texture2D>("res://Assets/UI/island_scene.svg"),
+            StretchMode = TextureRect.StretchModeEnum.Scale,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             MouseFilter = MouseFilterEnum.Ignore
         };
-        vertical.AddChild(awning);
+        scenic.SetAnchorsPreset(LayoutPreset.FullRect);
+        AddChild(scenic);
 
-        var orderShelf = Panel(new Color("#C78D62"), 10, new Color("#966548"), 2, 17);
+        var centering = new CenterContainer();
+        centering.SetAnchorsPreset(LayoutPreset.FullRect);
+        AddChild(centering);
+
+        var shell = Panel(new Color("#184E60", 0.30f), 15,
+            new Color("#FFF5D7", 0.86f), 4, 31);
+        shell.CustomMinimumSize = new Vector2(1710, 1000);
+        centering.AddChild(shell);
+
+        var vertical = new VBoxContainer();
+        vertical.AddThemeConstantOverride("separation", 9);
+        shell.AddChild(vertical);
+        BuildHeader(vertical);
+
+        var orderShelf = Panel(new Color("#D18D64"), 9,
+            new Color("#FFE7B4"), 4, 23);
         vertical.AddChild(orderShelf);
         _orders = new HBoxContainer();
         _orders.AddThemeConstantOverride("separation", 10);
@@ -96,16 +96,13 @@ public partial class GameRoot : Control
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill
         };
-        middle.AddThemeConstantOverride("separation", 11);
+        middle.AddThemeConstantOverride("separation", 12);
         vertical.AddChild(middle);
-
         BuildGenerators(middle);
         BuildBoard(middle);
         BuildTools(middle);
-
         BuildFooter(vertical);
 
-        // Modal album overlays the full board; gameplay stays untouched underneath.
         _album = new CardAlbumView(_game);
         _album.StateChanged += () => { Save(); Refresh(); };
         AddChild(_album);
@@ -129,127 +126,91 @@ public partial class GameRoot : Control
 
     private void BuildHeader(VBoxContainer parent)
     {
-        var row = new HBoxContainer { CustomMinimumSize = new Vector2(0, 66) };
-        row.AddThemeConstantOverride("separation", 11);
-        parent.AddChild(row);
+        var bar = Panel(new Color("#155A83", 0.97f), 12,
+            new Color("#B7F3F1"), 3, 28);
+        parent.AddChild(bar);
+        var row = new HBoxContainer { CustomMinimumSize = new Vector2(0, 65) };
+        row.AddThemeConstantOverride("separation", 16);
+        bar.AddChild(row);
 
-        var brand = new VBoxContainer { CustomMinimumSize = new Vector2(245, 0) };
+        var emblem = Panel(new Color("#FFD999"), 9, new Color("#FFF7D0"), 3, 33);
+        emblem.CustomMinimumSize = new Vector2(70, 60);
+        var sun = LabelText("☀", 34, new Color("#D7883C"), true);
+        sun.HorizontalAlignment = HorizontalAlignment.Center;
+        emblem.AddChild(sun);
+        row.AddChild(emblem);
+
+        var brand = new VBoxContainer { CustomMinimumSize = new Vector2(270, 0) };
         brand.AddThemeConstantOverride("separation", 0);
         row.AddChild(brand);
-        brand.AddChild(LabelText("MERGE HARVEST", 28, new Color("#FFF1AC"), true));
-        brand.AddChild(LabelText("SUMMER KITCHEN  •  FREE PLAY", 12,
-            new Color("#D1F0D6"), true));
-
+        brand.AddChild(LabelText("MERGE HARVEST", 31, new Color("#FFF5CF"), true));
+        brand.AddChild(LabelText("ISLAND ADVENTURE", 14, new Color("#B1F6EB"), true));
         row.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
 
-        var badge = Panel(new Color("#FFF0BD"), 11, new Color("#E6AC62"), 3, 30);
-        badge.CustomMinimumSize = new Vector2(100, 55);
-        var badgeContent = new VBoxContainer();
-        badgeContent.AddThemeConstantOverride("separation", 0);
-        badge.AddChild(badgeContent);
-        badgeContent.AddChild(LabelText("★  LEVEL", 11, new Color("#B7833C"), true));
-        _level = LabelText("1", 22, new Color("#9E5D3C"), true);
-        badgeContent.AddChild(_level);
-        row.AddChild(badge);
+        _level = LabelText("1", 25, new Color("#6E5539"), true);
+        row.AddChild(Stat("★  LEVEL", _level, new Color("#FFF1A9"), 116));
 
-        _energy = LabelText("∞", 20, new Color("#FFFFFF"), true);
-        row.AddChild(Stat("⚡ ENERGY", _energy, new Color("#289BC8"), 128));
+        _energy = LabelText("∞", 25, Colors.White, true);
+        row.AddChild(Stat("⚡  ENERGY", _energy, new Color("#239BC4"), 130));
 
-        _coins = LabelText("100", 20, new Color("#FFF2A5"), true);
-        row.AddChild(Stat("● COINS", _coins, new Color("#416E8E"), 133));
+        _coins = LabelText("100", 25, new Color("#FFF3B0"), true);
+        row.AddChild(Stat("●  COINS", _coins, new Color("#2C657C"), 148));
 
-        var albumButton = Button("CARD ALBUM", new Color("#D89F4A"), ShowAlbum, 56);
-        albumButton.CustomMinimumSize = new Vector2(120, 56);
-        row.AddChild(albumButton);
-
-        var townButton = Button("BUILD TOWN", new Color("#C27C51"), ShowTown, 56);
-        townButton.CustomMinimumSize = new Vector2(120, 56);
-        row.AddChild(townButton);
-        var collectionsButton = Button("COLLECTIONS", new Color("#59A7B8"), ShowCollections, 56);
-        collectionsButton.CustomMinimumSize = new Vector2(135, 56);
-        row.AddChild(collectionsButton);
+        row.AddChild(Button("ALBUM", new Color("#E9AA52"), ShowAlbum, 62));
+        row.AddChild(Button("TOWN MAP", new Color("#77BD8D"), ShowTown, 62));
     }
 
     private static PanelContainer Stat(string name, Label value, Color fill, float width)
     {
-        var panel = Panel(fill, 8, new Color("#D3EDED", 0.75f), 2, 27);
-        panel.CustomMinimumSize = new Vector2(width, 53);
+        var panel = Panel(fill, 7, new Color("#FFFFFF", 0.64f), 2, 24);
+        panel.CustomMinimumSize = new Vector2(width, 61);
         var stack = new VBoxContainer();
         stack.AddThemeConstantOverride("separation", 0);
         panel.AddChild(stack);
-        stack.AddChild(LabelText(name, 11, new Color("#EAF8FF"), true));
+        stack.AddChild(LabelText(name, 12,
+            fill.R + fill.G + fill.B > 2.1f ? new Color("#986846") : new Color("#E5FBFE"), true));
         stack.AddChild(value);
         return panel;
     }
 
     private void BuildGenerators(HBoxContainer middle)
     {
-        var panel = Panel(new Color("#E9F6D9"), 13, new Color("#C5DFB5"), 2, 19);
-        panel.CustomMinimumSize = new Vector2(245, 0);
-        middle.AddChild(panel);
-
+        // Slim navigation rail: item generation belongs on the actual board.
+        var rail = Panel(new Color("#205D79", 0.96f), 12,
+            new Color("#C3EDE5"), 3, 23);
+        rail.CustomMinimumSize = new Vector2(165, 0);
+        middle.AddChild(rail);
         var column = new VBoxContainer();
         column.AddThemeConstantOverride("separation", 12);
-        panel.AddChild(column);
-        var heading = LabelText("MERGE GENERATORS", 17, DeepTeal, true);
+        rail.AddChild(column);
+
+        var heading = LabelText("EXPLORE", 17, new Color("#FFF3C8"), true);
         heading.HorizontalAlignment = HorizontalAlignment.Center;
         column.AddChild(heading);
 
-        var previewPanel = Panel(new Color("#F9DFAC"), 9, new Color("#FBEACB"), 2, 17);
-        previewPanel.CustomMinimumSize = new Vector2(0, 167);
-        column.AddChild(previewPanel);
-        var previewColumn = new VBoxContainer();
-        previewColumn.AddThemeConstantOverride("separation", 3);
-        previewPanel.AddChild(previewColumn);
-        _generatorPreview = new FoodPreview
-        {
-            Family = 0, Tier = 5,
-            CustomMinimumSize = new Vector2(0, 116),
-            SizeFlagsVertical = SizeFlags.ExpandFill
-        };
-        previewColumn.AddChild(_generatorPreview);
-
-        _generatorInfo = LabelText("ORCHARD BASKET", 13, Brown, true, true);
-        _generatorInfo.HorizontalAlignment = HorizontalAlignment.Center;
-        previewColumn.AddChild(_generatorInfo);
-
-        column.AddChild(LabelText("SELECT AN UNLOCKED COLLECTION", 11, DeepTeal, true, true));
-        _generatorChoice = new OptionButton
-        {
-            CustomMinimumSize = new Vector2(0, 42),
-            FitToLongestItem = false,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            MouseDefaultCursorShape = CursorShape.PointingHand
-        };
-        _generatorChoice.AddThemeFontSizeOverride("font_size", 13);
-        _generatorChoice.ItemSelected += index =>
-        {
-            int family = _generatorChoice.GetItemId((int)index);
-            if (_game.SelectGenerator(family)) Changed(true);
-        };
-        column.AddChild(_generatorChoice);
-
-        var spawn = Button("TAP SPAWNER / PLACE +", new Color("#60B96B"),
-            () => Spawn(_game.State.SelectedGenerator), 56);
-        column.AddChild(spawn);
-        column.AddChild(LabelText("BOARD SPAWNERS • ENERGY: UNLIMITED", 13, Teal, true));
-        column.AddChild(new HSeparator());
-        column.AddChild(LabelText("STARTER GENERATORS", 12, DeepTeal, true));
-        foreach (int starter in new[] { 0, 1, 2 })
-        {
-            int family = starter;
-            column.AddChild(Button(CollectionCatalog.GeneratorNames[family],
-                new Color("#8BBDA1"), () =>
-                {
-                    if (_game.SelectGenerator(family)) Changed(true);
-                    Spawn(family);
-                }, 39));
-        }
+        column.AddChild(NavButton("▣", "COLLECTIONS", new Color("#9D82D8"), ShowCollections));
+        column.AddChild(NavButton("★", "CARD ALBUM", new Color("#E8A950"), ShowAlbum));
+        column.AddChild(NavButton("⌂", "TOWN MAP", new Color("#67B897"), ShowTown));
+        column.AddChild(NavButton("✦", "MERGE HINT", new Color("#76B9CE"),
+            () => { _game.ShowHint(); Refresh(); }));
         column.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
-        column.AddChild(LabelText("BUILD LOCATIONS TO PLACE NEW SPAWNERS. MERGE PARTS AND GENERATORS.", 12,
-            new Color("#588C83"), true, true));
-        column.AddChild(Button("VIEW ALL COLLECTIONS", new Color("#4E9DAA"),
-            ShowCollections, 43));
+        column.AddChild(LabelText("20 BUILDINGS", 12, new Color("#DDF7D9"), true));
+        column.AddChild(LabelText("23 ITEM CHAINS", 12, new Color("#DDF7D9"), true));
+        column.AddChild(LabelText("FREE PLAY", 12, new Color("#FFE1A3"), true));
+    }
+
+    private static PanelContainer NavButton(string symbol, string name, Color color, Action callback)
+    {
+        var frame = Panel(color, 5, new Color("#FFFFFF", 0.77f), 2, 17);
+        frame.CustomMinimumSize = new Vector2(0, 103);
+        var stack = new VBoxContainer();
+        stack.AddThemeConstantOverride("separation", 1);
+        frame.AddChild(stack);
+        var icon = LabelText(symbol, 33, Colors.White, true);
+        icon.HorizontalAlignment = HorizontalAlignment.Center;
+        stack.AddChild(icon);
+        stack.AddChild(Button(name, color.Darkened(0.1f), callback, 37));
+        return frame;
     }
 
     private void RefreshGenerators()
@@ -277,63 +238,100 @@ public partial class GameRoot : Control
 
     private void BuildBoard(HBoxContainer middle)
     {
-        var panel = Panel(new Color("#F9D5B5"), 7, new Color("#FCEB9B"), 3, 20);
+        var panel = Panel(new Color("#F9BCCC"), 10,
+            new Color("#FFE9B8"), 5, 30);
         panel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         panel.SizeFlagsVertical = SizeFlags.ExpandFill;
-        panel.CustomMinimumSize = new Vector2(525, 505);
+        panel.CustomMinimumSize = new Vector2(780, 730);
         middle.AddChild(panel);
-        var layout = new VBoxContainer();
-        layout.AddThemeConstantOverride("separation", 4);
-        panel.AddChild(layout);
 
-        var caption = new HBoxContainer { CustomMinimumSize = new Vector2(0, 26) };
-        caption.AddThemeConstantOverride("separation", 8);
-        layout.AddChild(caption);
-        caption.AddChild(LabelText("✦  MERGE BOARD", 15, Brown, true));
+        var inner = new VBoxContainer();
+        inner.AddThemeConstantOverride("separation", 4);
+        panel.AddChild(inner);
+        var caption = new HBoxContainer { CustomMinimumSize = new Vector2(0, 31) };
+        inner.AddChild(caption);
+        caption.AddChild(LabelText("✦  YOUR MERGE BOARD", 20, new Color("#934E62"), true));
         caption.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
-        caption.AddChild(LabelText("DRAG TO MERGE", 11, new Color("#B47C68"), true));
+        caption.AddChild(LabelText("TAP SPAWNERS  •  DRAG TO MERGE", 13,
+            new Color("#9A6174"), true));
 
         _board = new BoardView(_game)
         {
-            CustomMinimumSize = new Vector2(505, 505),
+            CustomMinimumSize = new Vector2(700, 685),
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill
         };
         _board.ActionFinished += BoardAction;
-        layout.AddChild(_board);
+        inner.AddChild(_board);
     }
 
     private void BuildTools(HBoxContainer middle)
     {
-        var panel = Panel(new Color("#E4F7F1"), 9, new Color("#B5D9CE"), 2, 20);
-        panel.CustomMinimumSize = new Vector2(139, 0);
+        var panel = Panel(new Color("#FFF0CE", 0.98f), 12,
+            new Color("#FFF8E8"), 4, 27);
+        panel.CustomMinimumSize = new Vector2(300, 0);
         middle.AddChild(panel);
         var column = new VBoxContainer();
-        column.AddThemeConstantOverride("separation", 10);
+        column.AddThemeConstantOverride("separation", 9);
         panel.AddChild(column);
 
-        var title = LabelText("BOOSTERS", 13, DeepTeal, true);
-        title.HorizontalAlignment = HorizontalAlignment.Center;
-        column.AddChild(title);
+        var heading = LabelText("YOUR KITCHEN", 19, new Color("#996447"), true);
+        heading.HorizontalAlignment = HorizontalAlignment.Center;
+        column.AddChild(heading);
 
-        Tool(column, "✦", "HINT", new Color("#D9A64D"),
-            () => { _game.ShowHint(); Refresh(); });
-        Tool(column, "↔", "ORGANIZE", new Color("#75B7C9"), () => Changed(_game.Organize()));
-        Tool(column, "✕", "RECYCLE", new Color("#E78E83"), () => Changed(_game.Recycle()));
+        var previewCard = Panel(new Color("#F8D4A4"), 6, new Color("#FFFFFF"), 2, 18);
+        previewCard.CustomMinimumSize = new Vector2(0, 204);
+        column.AddChild(previewCard);
+        var previewColumn = new VBoxContainer();
+        previewColumn.AddThemeConstantOverride("separation", 2);
+        previewCard.AddChild(previewColumn);
+        _generatorPreview = new FoodPreview
+        {
+            Family = 0, Tier = 5,
+            CustomMinimumSize = new Vector2(0, 145),
+            SizeFlagsVertical = SizeFlags.ExpandFill
+        };
+        previewColumn.AddChild(_generatorPreview);
+        _generatorInfo = LabelText("ORCHARD", 15, new Color("#976443"), true, true);
+        _generatorInfo.HorizontalAlignment = HorizontalAlignment.Center;
+        previewColumn.AddChild(_generatorInfo);
+
+        column.AddChild(LabelText("SELECT GENERATOR", 12, new Color("#93634E"), true));
+        _generatorChoice = new OptionButton
+        {
+            CustomMinimumSize = new Vector2(0, 46),
+            FitToLongestItem = false,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill
+        };
+        _generatorChoice.AddThemeFontSizeOverride("font_size", 15);
+        _generatorChoice.ItemSelected += index =>
+        {
+            int family = _generatorChoice.GetItemId((int)index);
+            if (_game.SelectGenerator(family)) Changed(true);
+        };
+        column.AddChild(_generatorChoice);
+
+        column.AddChild(Button("SPAWN FREE ITEM", new Color("#6BBB62"),
+            () => Spawn(_game.State.SelectedGenerator), 55));
+        column.AddChild(LabelText("Or tap any spawner on your board", 12,
+            new Color("#A27A5D"), false, true));
+
+        column.AddChild(new HSeparator());
+        column.AddChild(LabelText("BOARD TOOLS", 13, new Color("#9F6A51"), true));
+        var tools = new HBoxContainer();
+        tools.AddThemeConstantOverride("separation", 5);
+        column.AddChild(tools);
+        tools.AddChild(Button("HINT", new Color("#D8AE64"),
+            () => { _game.ShowHint(); Refresh(); }, 47));
+        tools.AddChild(Button("SORT", new Color("#77B8C1"),
+            () => Changed(_game.Organize()), 47));
+        tools.AddChild(Button("TRASH", new Color("#E18B82"),
+            () => Changed(_game.Recycle()), 47));
 
         column.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
-
-        var stats = Panel(new Color("#FFF8DE"), 9, new Color("#E0D5AA"), 1, 15);
-        column.AddChild(stats);
-        var statsContent = new VBoxContainer();
-        statsContent.AddThemeConstantOverride("separation", 3);
-        stats.AddChild(statsContent);
-        statsContent.AddChild(LabelText("SERVED", 11, new Color("#8B886F"), true));
-        _served = LabelText("0 ORDERS", 15, Brown, true);
-        statsContent.AddChild(_served);
-
-        var reset = Button("NEW GAME", new Color("#9AA7A0"), ResetPressed, 32);
-        column.AddChild(reset);
+        _served = LabelText("0 ORDERS SERVED", 15, new Color("#926C53"), true);
+        column.AddChild(_served);
+        column.AddChild(Button("NEW GAME", new Color("#B1A49E"), ResetPressed, 39));
     }
 
     private static void Tool(VBoxContainer parent, string symbol, string text, Color color, Action action)
@@ -352,83 +350,77 @@ public partial class GameRoot : Control
 
     private void BuildFooter(VBoxContainer parent)
     {
-        var footer = Panel(new Color("#FFF5CF"), 9, new Color("#F1D991"), 2, 16);
+        var footer = Panel(new Color("#FFF0D0", 0.97f), 10,
+            new Color("#FFF9E3"), 3, 19);
         parent.AddChild(footer);
         var column = new VBoxContainer();
-        column.AddThemeConstantOverride("separation", 4);
+        column.AddThemeConstantOverride("separation", 3);
         footer.AddChild(column);
-
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 12);
         column.AddChild(row);
-        row.AddChild(LabelText("TRAVEL PROGRESS", 12, Brown, true));
-
+        row.AddChild(LabelText("TRAVEL LEVEL", 14, new Color("#92614E"), true));
         _progress = new ProgressBar
         {
             MinValue = 0,
             MaxValue = 100,
-            Value = 0,
             ShowPercentage = false,
-            CustomMinimumSize = new Vector2(390, 14),
+            CustomMinimumSize = new Vector2(450, 21),
             SizeFlagsHorizontal = SizeFlags.ExpandFill
         };
         _progress.AddThemeStyleboxOverride("background",
-            Style(new Color("#E5CCB0"), new Color("#FFFFFF"), 1, 9));
+            Style(new Color("#E0C29E"), new Color("#FFFFFF"), 1, 11));
         _progress.AddThemeStyleboxOverride("fill",
-            Style(new Color("#73C57E"), new Color("#C7F7A9"), 1, 9));
+            Style(new Color("#61C6AF"), new Color("#9FF6BB"), 2, 11));
         row.AddChild(_progress);
-
-        _albumCount = LabelText("CARDS 0/54", 12, Teal, true);
+        _albumCount = LabelText("ALBUM 0/54", 15, new Color("#448B84"), true);
         row.AddChild(_albumCount);
-        _status = LabelText("", 14, Brown, true, true);
+        _status = LabelText("", 14, new Color("#875A47"), true, true);
         column.AddChild(_status);
     }
 
     private void RebuildOrders()
     {
-        foreach (Node child in _orders.GetChildren())
+        foreach (Node old in _orders.GetChildren())
         {
-            _orders.RemoveChild(child);
-            child.QueueFree();
+            _orders.RemoveChild(old);
+            old.QueueFree();
         }
 
         for (int i = 0; i < _game.State.Orders.Count; i++)
         {
             int orderIndex = i;
-            OrderData item = _game.State.Orders[i];
+            var order = _game.State.Orders[i];
             bool ready = _game.CanServe(i);
+            var card = Panel(new Color("#FFF8E7"), 11,
+                ready ? new Color("#A2DA83") : new Color("#FFE9BD"), 3, 20);
+            card.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            card.CustomMinimumSize = new Vector2(0, 118);
+            _orders.AddChild(card);
 
-            var panel = Panel(new Color("#FFF9EF"), 8,
-                ready ? new Color("#9DD882") : new Color("#F3D8BC"), 3, 16);
-            panel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            panel.CustomMinimumSize = new Vector2(0, 104);
-            _orders.AddChild(panel);
-
-            var content = new HBoxContainer();
-            content.AddThemeConstantOverride("separation", 7);
-            panel.AddChild(content);
-            var preview = new FoodPreview
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 10);
+            card.AddChild(row);
+            var picture = new FoodPreview
             {
-                Family = item.Family,
-                Tier = item.Tier,
-                CustomMinimumSize = new Vector2(71, 76)
+                Family = order.Family,
+                Tier = order.Tier,
+                CustomMinimumSize = new Vector2(105, 96)
             };
-            content.AddChild(preview);
+            row.AddChild(picture);
 
             var text = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-            text.AddThemeConstantOverride("separation", 2);
-            content.AddChild(text);
-            text.AddChild(LabelText("ORDER " + (i + 1), 11, new Color("#BFA087"), true));
-            text.AddChild(LabelText(FoodCatalog.Name(item.Family, item.Tier), 15,
-                Brown, true, true));
-            text.AddChild(LabelText("●  +" + item.Coins + "   ★ +" + item.Experience,
-                11, new Color("#D29B4B"), true));
-
-            var serve = Button(ready ? "SERVE ✓" : "MAKE ITEM",
-                ready ? new Color("#74C655") : new Color("#D6AF8D"),
-                () => Changed(_game.Serve(orderIndex)), 29);
-            serve.CustomMinimumSize = new Vector2(0, 28);
-            text.AddChild(serve);
+            text.AddThemeConstantOverride("separation", 4);
+            row.AddChild(text);
+            text.AddChild(LabelText("CUSTOMER ORDER " + (i + 1), 12,
+                new Color("#B98B68"), true));
+            text.AddChild(LabelText(FoodCatalog.Name(order.Family, order.Tier), 20,
+                new Color("#875947"), true, true));
+            text.AddChild(LabelText("● +" + order.Coins + "       ★ +" + order.Experience,
+                13, new Color("#CB9345"), true));
+            text.AddChild(Button(ready ? "SERVE ORDER ✓" : "MERGE TO COMPLETE",
+                ready ? new Color("#69BC59") : new Color("#D7AE84"),
+                () => Changed(_game.Serve(orderIndex)), 35));
         }
     }
 
