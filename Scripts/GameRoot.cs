@@ -17,6 +17,8 @@ public partial class GameRoot : Control
     private Label _status = null!;
     private ProgressBar _progress = null!;
     private HBoxContainer _orders = null!;
+    private CardAlbumView _album = null!;
+    private Label _albumCount = null!;
     private bool _resetPending;
 
     private static readonly Color Navy = new("#316274");
@@ -86,6 +88,11 @@ public partial class GameRoot : Control
         BuildTools(middle);
 
         BuildFooter(vertical);
+
+        // Modal album overlays the full board; gameplay stays untouched underneath.
+        _album = new CardAlbumView(_game);
+        _album.StateChanged += () => { Save(); Refresh(); };
+        AddChild(_album);
     }
 
     private void BuildHeader(VBoxContainer parent)
@@ -118,6 +125,10 @@ public partial class GameRoot : Control
 
         _coins = LabelText("100", 20, new Color("#FFF2A5"), true);
         row.AddChild(Stat("● COINS", _coins, new Color("#416E8E"), 133));
+
+        var albumButton = Button("CARD ALBUM", new Color("#D89F4A"), ShowAlbum, 56);
+        albumButton.CustomMinimumSize = new Vector2(120, 56);
+        row.AddChild(albumButton);
     }
 
     private static PanelContainer Stat(string name, Label value, Color fill, float width)
@@ -281,7 +292,8 @@ public partial class GameRoot : Control
             Style(new Color("#73C57E"), new Color("#C7F7A9"), 1, 9));
         row.AddChild(_progress);
 
-        row.AddChild(LabelText("MERGE • SERVE • REPEAT", 12, Teal, true));
+        _albumCount = LabelText("CARDS 0/54", 12, Teal, true);
+        row.AddChild(_albumCount);
         _status = LabelText("", 14, Brown, true, true);
         column.AddChild(_status);
     }
@@ -334,6 +346,11 @@ public partial class GameRoot : Control
         }
     }
 
+    private void ShowAlbum()
+    {
+        _album.Open();
+    }
+
     private void BoardAction(bool changed)
     {
         _resetPending = false;
@@ -373,6 +390,8 @@ public partial class GameRoot : Control
         _energy.Text = "∞ FREE";
         _coins.Text = _game.State.Coins.ToString("N0");
         _served.Text = _game.State.CompletedOrders + " ORDERS";
+        _albumCount.Text = "ALBUM " + _game.Cards.Collected + "/" + CardCatalog.TotalCards +
+                           "  |  PACKS " + (_game.Cards.State.Packs + _game.Cards.State.PremiumPacks);
         _progress.Value = 100.0 * _game.State.Experience / _game.ExperienceRequired;
         _status.Text = _game.Message;
         RebuildOrders();
@@ -382,6 +401,15 @@ public partial class GameRoot : Control
     public override void _UnhandledKeyInput(InputEvent @event)
     {
         if (@event is not InputEventKey key || !key.Pressed || key.Echo) return;
+        if (_album.Visible)
+        {
+            if (key.Keycode == Key.Escape)
+            {
+                _album.Close();
+                GetViewport().SetInputAsHandled();
+            }
+            return;
+        }
         if (key.Keycode == Key.Space)
         {
             Spawn(0);
