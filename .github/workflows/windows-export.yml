@@ -37,6 +37,7 @@ jobs:
           "$GODOT_BIN" --headless --path . --editor --import --quit
       - name: Smoke test game scene
         run: |
+          dotnet build MergeHarvest.csproj -c Debug --no-restore
           set -o pipefail
           "$GODOT_BIN" --headless --path . --quit-after 20 2>&1 | tee /tmp/merge-game-smoke.log
           if grep -E 'ERROR:|Unhandled Exception|FATAL:' /tmp/merge-game-smoke.log; then
