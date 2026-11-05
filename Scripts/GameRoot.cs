@@ -37,7 +37,9 @@ public partial class GameRoot : Control
         if (System.Environment.GetEnvironmentVariable("MERGE_CARD_TEST") == "1")
         {
             CardAlbumChecks.Run();
+            TownChecks.Run();
             _album.Open();
+            _townView.Open();
         }
         Refresh();
     }

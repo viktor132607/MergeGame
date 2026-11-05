@@ -41,6 +41,7 @@ jobs:
           set -o pipefail
           MERGE_CARD_TEST=1 "$GODOT_BIN" --headless --path . --quit-after 25 2>&1 | tee /tmp/merge-game-smoke.log
           grep -q "CARD ALBUM TESTS PASSED" /tmp/merge-game-smoke.log
+          grep -q "TOWN TESTS PASSED" /tmp/merge-game-smoke.log
           if grep -E 'ERROR:|Unhandled Exception|FATAL:' /tmp/merge-game-smoke.log; then
             echo "Game scene produced runtime errors"
             exit 1
