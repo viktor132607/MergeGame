@@ -18,6 +18,7 @@ public partial class GameRoot : Control
     private ProgressBar _progress = null!;
     private HBoxContainer _orders = null!;
     private CardAlbumView _album = null!;
+    private TownView _townView = null!;
     private Label _albumCount = null!;
     private bool _resetPending;
 
@@ -98,6 +99,10 @@ public partial class GameRoot : Control
         _album = new CardAlbumView(_game);
         _album.StateChanged += () => { Save(); Refresh(); };
         AddChild(_album);
+
+        _townView = new TownView(_game);
+        _townView.Changed += () => { Save(); Refresh(); };
+        AddChild(_townView);
     }
 
     private void BuildHeader(VBoxContainer parent)
@@ -134,6 +139,10 @@ public partial class GameRoot : Control
         var albumButton = Button("CARD ALBUM", new Color("#D89F4A"), ShowAlbum, 56);
         albumButton.CustomMinimumSize = new Vector2(120, 56);
         row.AddChild(albumButton);
+
+        var townButton = Button("BUILD TOWN", new Color("#C27C51"), ShowTown, 56);
+        townButton.CustomMinimumSize = new Vector2(120, 56);
+        row.AddChild(townButton);
     }
 
     private static PanelContainer Stat(string name, Label value, Color fill, float width)
@@ -356,6 +365,11 @@ public partial class GameRoot : Control
         _album.Open();
     }
 
+    private void ShowTown()
+    {
+        _townView.Open();
+    }
+
     private void BoardAction(bool changed)
     {
         _resetPending = false;
@@ -406,6 +420,15 @@ public partial class GameRoot : Control
     public override void _UnhandledKeyInput(InputEvent @event)
     {
         if (@event is not InputEventKey key || !key.Pressed || key.Echo) return;
+        if (_townView.Visible)
+        {
+            if (key.Keycode == Key.Escape)
+            {
+                _townView.Close();
+                GetViewport().SetInputAsHandled();
+            }
+            return;
+        }
         if (_album.Visible)
         {
             if (key.Keycode == Key.Escape)
