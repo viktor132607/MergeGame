@@ -6,21 +6,20 @@ public partial class TownView : Control
 {
     private readonly GameData _game;
     private int _selected;
-    private Label _title = null!;
+    private TownMapView _map = null!;
+    private Label _heading = null!;
     private Label _description = null!;
-    private Label _progress = null!;
-    private TextureRect _buildingPicture = null!;
-    private HBoxContainer _materials = null!;
-    private VBoxContainer _sidebar = null!;
+    private Label _status = null!;
+    private Label _resources = null!;
+    private Label _funds = null!;
+    private TextureRect _preview = null!;
+    private GridContainer _materialGrid = null!;
     private Button _build = null!;
-    private Label _coins = null!;
-    private Label _message = null!;
-
-    private static readonly Color Ink = new("#754C3C");
-    private static readonly Color Cream = new("#FFF7DE");
-    private static readonly Color Teal = new("#248F83");
 
     public event Action? Changed;
+
+    private static readonly Color Ink = new("#795241");
+    private static readonly Color Teal = new("#248C81");
 
     public TownView(GameData game)
     {
@@ -37,8 +36,10 @@ public partial class TownView : Control
 
     public void Open()
     {
-        _selected = _game.State.Town.SelectedBuilding;
+        _selected = Math.Clamp(_game.State.Town.SelectedBuilding, 0,
+            TownCatalog.BuildingCount - 1);
         Visible = true;
+        _map.Select(_selected);
         Refresh();
     }
 
@@ -46,186 +47,148 @@ public partial class TownView : Control
 
     private void Build()
     {
-        var dimmer = new ColorRect { Color = new Color("#132932", 0.84f) };
-        dimmer.SetAnchorsPreset(LayoutPreset.FullRect);
-        AddChild(dimmer);
+        var shade = new ColorRect { Color = new Color("#132830", 0.88f) };
+        shade.SetAnchorsPreset(LayoutPreset.FullRect);
+        AddChild(shade);
 
         var center = new CenterContainer();
         center.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(center);
 
-        var panel = Panel(new Color("#F4D3A6"), 18, new Color("#FFF6D4"), 5, 24);
-        panel.CustomMinimumSize = new Vector2(1110, 886);
+        var panel = Panel(new Color("#F4D6B0"), 13, new Color("#FFF3D8"), 4, 22);
+        panel.CustomMinimumSize = new Vector2(1150, 900);
         center.AddChild(panel);
-        var column = new VBoxContainer();
-        column.AddThemeConstantOverride("separation", 12);
-        panel.AddChild(column);
+        var root = new VBoxContainer();
+        root.AddThemeConstantOverride("separation", 10);
+        panel.AddChild(root);
 
         var header = new HBoxContainer();
-        header.AddThemeConstantOverride("separation", 13);
-        column.AddChild(header);
-        var headings = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        header.AddChild(headings);
-        headings.AddChild(Label("BUILD YOUR ISLAND", 30, Ink, true));
-        headings.AddChild(Label("COLLECT RESOURCES • SPEND COINS • UPGRADE BUILDINGS", 13, Teal, true));
-        _coins = Label("", 17, Ink, true);
-        header.AddChild(_coins);
-        header.AddChild(Button("CLOSE", new Color("#B7716E"), Close, 52));
+        header.AddThemeConstantOverride("separation", 12);
+        root.AddChild(header);
+        var titleArea = new VBoxContainer();
+        titleArea.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        header.AddChild(titleArea);
+        titleArea.AddChild(Text("YOUR ISLAND — 20 BUILDINGS", 26, Ink, true));
+        titleArea.AddChild(Text("SELECT A LOT • UNLOCK BY LEVEL • BUILD AND UPGRADE", 13, Teal, true));
+        _funds = Text("", 17, Ink, true);
+        header.AddChild(_funds);
+        header.AddChild(Action("CLOSE", new Color("#B36F69"), Close, 48));
 
         var body = new HBoxContainer
         {
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill
+        };
+        body.AddThemeConstantOverride("separation", 10);
+        root.AddChild(body);
+
+        _map = new TownMapView(_game)
+        {
+            CustomMinimumSize = new Vector2(760, 630),
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill
         };
-        body.AddThemeConstantOverride("separation", 15);
-        column.AddChild(body);
-
-        var selector = Panel(new Color("#E0F2D8"), 11, new Color("#B7D4B4"), 2, 18);
-        selector.CustomMinimumSize = new Vector2(290, 0);
-        body.AddChild(selector);
-        _sidebar = new VBoxContainer();
-        _sidebar.AddThemeConstantOverride("separation", 8);
-        selector.AddChild(_sidebar);
-
-        var details = Panel(new Color("#FFF9EB"), 17, new Color("#E0B99B"), 3, 18);
-        details.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        details.SizeFlagsVertical = SizeFlags.ExpandFill;
-        body.AddChild(details);
-
-        var info = new VBoxContainer();
-        info.AddThemeConstantOverride("separation", 11);
-        details.AddChild(info);
-
-        _title = Label("", 26, Ink, true);
-        info.AddChild(_title);
-        _description = Label("", 13, new Color("#A1816B"));
-        info.AddChild(_description);
-        _buildingPicture = new TextureRect
+        _map.BuildingSelected += index =>
         {
+            _selected = index;
+            _game.State.Town.SelectedBuilding = index;
+            Refresh();
+        };
+        body.AddChild(_map);
+
+        var sidebar = Panel(new Color("#FFF9ED"), 11, new Color("#D7AE83"), 2, 16);
+        sidebar.CustomMinimumSize = new Vector2(310, 0);
+        body.AddChild(sidebar);
+        var info = new VBoxContainer();
+        info.AddThemeConstantOverride("separation", 6);
+        sidebar.AddChild(info);
+
+        _heading = Text("", 21, Ink, true, true);
+        info.AddChild(_heading);
+        _description = Text("", 12, new Color("#9E7A64"), false, true);
+        info.AddChild(_description);
+        _preview = new TextureRect
+        {
+            CustomMinimumSize = new Vector2(260, 176),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            CustomMinimumSize = new Vector2(0, 360),
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill
+            SizeFlagsHorizontal = SizeFlags.ExpandFill
         };
-        info.AddChild(_buildingPicture);
-        _progress = Label("", 17, Ink, true);
-        info.AddChild(_progress);
-
-        info.AddChild(Label("CONSTRUCTION MATERIALS", 13, Ink, true));
-        _materials = new HBoxContainer();
-        _materials.AddThemeConstantOverride("separation", 8);
-        info.AddChild(_materials);
-        _build = Button("BUILD", new Color("#67B86A"), Construct, 56);
+        info.AddChild(_preview);
+        _status = Text("", 15, Teal, true, true);
+        info.AddChild(_status);
+        info.AddChild(Text("REQUIRED MATERIALS", 12, Ink, true));
+        _materialGrid = new GridContainer { Columns = 2 };
+        _materialGrid.AddThemeConstantOverride("h_separation", 6);
+        _materialGrid.AddThemeConstantOverride("v_separation", 6);
+        info.AddChild(_materialGrid);
+        info.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
+        _build = Action("BUILD", new Color("#55B567"), Construct, 54);
         info.AddChild(_build);
 
-        var bottom = Panel(new Color("#FFF2D0"), 12, new Color("#E9C59B"), 2, 16);
-        column.AddChild(bottom);
-        var bottomRow = new HBoxContainer();
-        bottomRow.AddThemeConstantOverride("separation", 10);
-        bottom.AddChild(bottomRow);
-        bottomRow.AddChild(Label("INVENTORY", 16, Ink, true));
-
-        for (int i = 0; i < 4; i++)
-        {
-            int k = i;
-            var icon = new TextureRect
-            {
-                Texture = GD.Load<Texture2D>("res://Assets/Materials/" +
-                    TownCatalog.MaterialIcons[i] + ".svg"),
-                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-                CustomMinimumSize = new Vector2(55, 38)
-            };
-            bottomRow.AddChild(icon);
-            var number = Label("", 14, Teal, true);
-            number.SetMeta("material_index", k);
-            bottomRow.AddChild(number);
-        }
-        bottomRow.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
-        _message = Label("", 12, Ink, false, true);
-        _message.CustomMinimumSize = new Vector2(220, 0);
-        bottomRow.AddChild(_message);
+        var footer = Panel(new Color("#FFF5D9"), 8, new Color("#DBB68E"), 2, 12);
+        root.AddChild(footer);
+        _resources = Text("", 14, Ink, true);
+        footer.AddChild(_resources);
     }
 
     private void Refresh()
     {
-        _coins.Text = "COINS: " + _game.State.Coins.ToString("N0");
-        _message.Text = _game.Message;
-        foreach (Node child in _sidebar.GetChildren())
-        {
-            _sidebar.RemoveChild(child);
-            child.QueueFree();
-        }
-        for (int i = 0; i < TownCatalog.BuildingCount; i++)
-        {
-            int id = i;
-            var data = TownCatalog.Buildings[i];
-            var b = Button(
-                (i == _selected ? "● " : "") + data.Name.ToUpperInvariant() +
-                "    " + _game.Town.Stage(i) + "/3" +
-                (_game.Town.Unlocked(i) ? "" : "  [LV " + data.UnlockLevel + "]"),
-                i == _selected ? new Color("#E59B5F") : new Color("#67B7A2"),
-                () => { _selected = id; _game.State.Town.SelectedBuilding = id; Refresh(); }, 67);
-            _sidebar.AddChild(b);
-        }
-
-        var selected = TownCatalog.Buildings[_selected];
+        var building = TownCatalog.Buildings[_selected];
         int stage = _game.Town.Stage(_selected);
         bool unlocked = _game.Town.Unlocked(_selected);
-        bool complete = stage == TownCatalog.MaxStage;
-        _title.Text = selected.Name;
-        _description.Text = selected.Description;
-        _progress.Text = complete ? "FULLY UPGRADED  •  3 / 3" :
-            unlocked ? "STAGE " + stage + " / 3    →    " + (stage + 1) + " / 3" :
-            "LOCKED UNTIL LEVEL " + selected.UnlockLevel;
-        _buildingPicture.Texture = GD.Load<Texture2D>(
-            "res://Assets/Buildings/" + _selected + ".svg");
-        _buildingPicture.Modulate = stage == 0 ? new Color(1, 1, 1, 0.70f) : Colors.White;
+        bool maxed = stage >= TownCatalog.MaxStage;
 
-        foreach (Node child in _materials.GetChildren())
+        _heading.Text = building.Name;
+        _description.Text = building.Description;
+        _preview.Texture = GD.Load<Texture2D>("res://Assets/Buildings/" + _selected + ".svg");
+        _preview.Modulate = !unlocked ? new Color(0.6f, 0.6f, 0.6f) :
+            stage == 0 ? new Color(1f, 1f, 1f, 0.68f) : Colors.White;
+        _status.Text = !unlocked ? "LOCKED • UNLOCKS AT LEVEL " + building.UnlockLevel :
+            maxed ? "COMPLETED • LEVEL 3 / 3" : "BUILDING LEVEL " + stage + " → " + (stage + 1);
+        _funds.Text = "COINS: " + _game.State.Coins.ToString("N0");
+        _resources.Text = "INVENTORY   " + string.Join("     ",
+            Array.ConvertAll(TownCatalog.MaterialNames, (name) =>
+            {
+                int i = Array.IndexOf(TownCatalog.MaterialNames, name);
+                return name + ": " + _game.State.Town.Materials[i];
+            }));
+
+        foreach (Node child in _materialGrid.GetChildren())
         {
-            _materials.RemoveChild(child);
+            _materialGrid.RemoveChild(child);
             child.QueueFree();
         }
-
-        var cost = complete ? new ConstructionCost(0, 0, 0, 0, 0) :
+        ConstructionCost cost = maxed ? new ConstructionCost(0, 0, 0, 0, 0) :
             TownCatalog.GetCost(_selected, stage + 1);
         for (int i = 0; i < 4; i++)
         {
             int owned = _game.State.Town.Materials[i];
-            int needed = cost.GetMaterial(i);
-            var panel = Panel(new Color("#FBE8CC"), 8,
-                owned >= needed ? new Color("#80B88D") : new Color("#D88477"), 2, 12);
-            panel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            _materials.AddChild(panel);
-            var item = new VBoxContainer();
-            panel.AddChild(item);
-            var icon = new TextureRect
+            int required = cost.GetMaterial(i);
+            var mat = Panel(new Color("#FFEED5"), 5,
+                owned >= required ? new Color("#8EC89C") : new Color("#D99785"), 2, 9);
+            mat.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            _materialGrid.AddChild(mat);
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 3);
+            mat.AddChild(row);
+            row.AddChild(new TextureRect
             {
                 Texture = GD.Load<Texture2D>("res://Assets/Materials/" +
                     TownCatalog.MaterialIcons[i] + ".svg"),
-                CustomMinimumSize = new Vector2(80, 63),
+                CustomMinimumSize = new Vector2(47, 37),
                 ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                 StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered
-            };
-            item.AddChild(icon);
-            var label = Label(TownCatalog.MaterialNames[i] + " " + owned + "/" + needed, 13,
-                owned >= needed ? Teal : new Color("#C36B5A"), true);
-            label.HorizontalAlignment = HorizontalAlignment.Center;
-            item.AddChild(label);
+            });
+            row.AddChild(Text(owned + " / " + required, 13,
+                owned >= required ? Teal : new Color("#BC665C"), true));
         }
 
-        _build.Disabled = !unlocked || complete || !_game.Town.CanBuild(_selected);
-        _build.Text = complete ? "BUILDING COMPLETE" :
-            !unlocked ? "REACH LEVEL " + selected.UnlockLevel :
-            "BUILD / UPGRADE  •  " + cost.Coins + " COINS";
-        _build.AddThemeColorOverride("font_disabled_color", new Color("#F7E7D7"));
-
-        // Labels with an index are dynamic inventory indicators.
-        foreach (Node child in _message.GetParent().GetChildren())
-            if (child is Godot.Label l && l.HasMeta("material_index"))
-                l.Text = _game.State.Town.Materials[l.GetMeta("material_index").AsInt32()].ToString();
+        _build.Text = maxed ? "FULLY UPGRADED" :
+            !unlocked ? "UNLOCK AT LEVEL " + building.UnlockLevel :
+            "BUILD / UPGRADE • " + cost.Coins + " COINS";
+        _build.Disabled = maxed || !unlocked || !_game.Town.CanBuild(_selected);
+        _map.Select(_selected);
     }
 
     private void Construct()
@@ -237,54 +200,58 @@ public partial class TownView : Control
     private static PanelContainer Panel(Color fill, int margin, Color edge, int border, int radius)
     {
         var p = new PanelContainer();
-        var box = new StyleBoxFlat { BgColor = fill, BorderColor = edge };
-        box.SetBorderWidthAll(border);
-        box.SetCornerRadiusAll(radius);
-        box.ContentMarginLeft = margin;
-        box.ContentMarginRight = margin;
-        box.ContentMarginTop = margin;
-        box.ContentMarginBottom = margin;
-        p.AddThemeStyleboxOverride("panel", box);
+        var style = new StyleBoxFlat { BgColor = fill, BorderColor = edge };
+        style.SetBorderWidthAll(border);
+        style.SetCornerRadiusAll(radius);
+        style.ContentMarginLeft = margin;
+        style.ContentMarginRight = margin;
+        style.ContentMarginTop = margin;
+        style.ContentMarginBottom = margin;
+        p.AddThemeStyleboxOverride("panel", style);
         return p;
     }
 
-    private static Label Label(string text, int size, Color color, bool bold = false, bool wrap = false)
+    private static Label Text(string value, int size, Color color, bool bold = false, bool wrap = false)
     {
-        var label = new Label { Text = text,
+        var l = new Label
+        {
+            Text = value,
             VerticalAlignment = VerticalAlignment.Center,
-            AutowrapMode = wrap ? TextServer.AutowrapMode.WordSmart : TextServer.AutowrapMode.Off };
-        label.AddThemeFontSizeOverride("font_size", size);
-        label.AddThemeColorOverride("font_color", color);
-        if (bold) label.AddThemeColorOverride("font_shadow_color", new Color(0, 0, 0, 0.13f));
-        return label;
+            AutowrapMode = wrap ? TextServer.AutowrapMode.WordSmart : TextServer.AutowrapMode.Off
+        };
+        l.AddThemeFontSizeOverride("font_size", size);
+        l.AddThemeColorOverride("font_color", color);
+        if (bold) l.AddThemeColorOverride("font_shadow_color", new Color(0, 0, 0, 0.09f));
+        return l;
     }
 
-    private static Button Button(string text, Color color, Action action, int height)
+    private static Button Action(string title, Color color, Action callback, int height)
     {
-        var button = new Button
+        var b = new Button
         {
-            Text = text,
+            Text = title,
             CustomMinimumSize = new Vector2(0, height),
             FocusMode = FocusModeEnum.None,
             MouseDefaultCursorShape = CursorShape.PointingHand
         };
-        button.AddThemeFontSizeOverride("font_size", 13);
-        foreach (var name in new[] { "normal", "hover", "pressed", "disabled" })
+        foreach (var state in new[] { "normal", "hover", "pressed", "disabled" })
         {
             var box = new StyleBoxFlat
             {
-                BgColor = name == "disabled" ? color.Darkened(0.25f) :
-                    name == "hover" ? color.Lightened(0.10f) : color,
-                BorderColor = new Color("#FFFFFF", 0.75f)
+                BgColor = state == "disabled" ? color.Darkened(0.27f) :
+                    state == "hover" ? color.Lightened(0.13f) : color,
+                BorderColor = new Color("#FFFFFF", 0.7f)
             };
             box.SetCornerRadiusAll(12);
-            box.SetBorderWidthAll(2);
-            button.AddThemeStyleboxOverride(name, box);
+            box.SetBorderWidthAll(1);
+            b.AddThemeStyleboxOverride(state, box);
         }
-        button.AddThemeColorOverride("font_color", Colors.White);
-        button.AddThemeColorOverride("font_hover_color", Colors.White);
-        button.AddThemeColorOverride("font_pressed_color", Colors.White);
-        button.Pressed += action;
-        return button;
+        b.AddThemeFontSizeOverride("font_size", 13);
+        b.AddThemeColorOverride("font_color", Colors.White);
+        b.AddThemeColorOverride("font_hover_color", Colors.White);
+        b.AddThemeColorOverride("font_pressed_color", Colors.White);
+        b.AddThemeColorOverride("font_disabled_color", new Color("#F5E7D7"));
+        b.Pressed += callback;
+        return b;
     }
 }
