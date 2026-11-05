@@ -57,7 +57,7 @@ public static class TownChecks
 
         game.State.Level = 40;
         Check(town.Unlocked(19), "grand resort unlocked at level 40");
-        game.State.Coins = 100000;
+        game.State.Coins = 1000000;
         game.State.Town.Materials = new[] { 1000, 1000, 1000, 1000 };
         for (int i = 6; i < TownCatalog.BuildingCount; i++)
             for (int stage = 1; stage <= 3; stage++)
