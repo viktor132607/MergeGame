@@ -84,7 +84,7 @@ public partial class BoardView : Control
             if (to >= 0)
             {
                 int previousMergeCount = _game.State.TotalMerges;
-                bool modified = _game.Interact(from, to);
+                bool modified = from == to ? _game.TapTile(from) : _game.Interact(from, to);
                 if (_game.State.TotalMerges > previousMergeCount) BeginSpark(to);
                 ActionFinished?.Invoke(modified);
                 GetViewport().SetInputAsHandled();
@@ -156,16 +156,25 @@ public partial class BoardView : Control
             }
 
             float scale = Mathf.Clamp(cell * 0.49f, 20f, 37f);
-            FoodArt.Draw(this, square.GetCenter() + new Vector2(0, -2f), scale,
-                tile.Family, tile.Tier);
+            if (tile.Kind == TileKind.Item)
+                FoodArt.Draw(this, square.GetCenter() + new Vector2(0, -2f), scale,
+                    tile.Family, tile.Tier);
+            else
+                SpawnerArt.Draw(this, square.GetCenter() + new Vector2(0, -2f),
+                    scale, tile.Family, tile.Tier, tile.Kind);
+
 
             // Tiny tier medallion; no intrusive labels over the colorful illustrations.
             DrawCircle(square.Position + new Vector2(cell - 10f, 11f), 10f,
+                tile.Kind == TileKind.Generator ? new Color("#6FDBC2") :
+                tile.Kind == TileKind.GeneratorPart ? new Color("#BC93F5") :
                 new Color("#F8D45B"));
             DrawCircle(square.Position + new Vector2(cell - 10f, 11f), 8f,
                 new Color("#FFF3BF"));
             DrawString(GetThemeDefaultFont(), square.Position + new Vector2(cell - 20f, 16f),
-                tile.Tier.ToString(), HorizontalAlignment.Center, 20, 11, new Color("#93613F"));
+                tile.Kind == TileKind.Generator ? "G" + tile.Tier :
+                tile.Kind == TileKind.GeneratorPart ? "P" + tile.Tier :
+                tile.Tier.ToString(), HorizontalAlignment.Center, 20, 10, new Color("#56456B"));
         }
 
         if (_sparkTime > 0f && _sparkTile >= 0)
@@ -188,7 +197,11 @@ public partial class BoardView : Control
             _mouseStart.DistanceTo(_pointer) > 10f)
         {
             DrawCircle(_pointer, cell * 0.42f, new Color("#FFFFFF", 0.72f));
-            FoodArt.Draw(this, _pointer, cell * 0.48f, dragged.Family, dragged.Tier);
+            if (dragged.Kind == TileKind.Item)
+                FoodArt.Draw(this, _pointer, cell * 0.48f, dragged.Family, dragged.Tier);
+            else
+                SpawnerArt.Draw(this, _pointer, cell * 0.48f,
+                    dragged.Family, dragged.Tier, dragged.Kind);
         }
     }
 
