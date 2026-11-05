@@ -51,9 +51,7 @@ public static class CollectionArt
         Color dark = color.Darkened(0.23f);
         Color cream = new("#FFF5D5");
         var o = Vector2.Zero;
-        float scale = 0.80f + Math.Min(tier, 10) * 0.035f;
-        c.DrawSetTransform(Vector2.Zero, 0, new Vector2(scale, scale));
-
+        // Draw inside FoodArt's active position/scale transform.
         // The base icon changes by building/collection (20 genuinely different silhouettes).
         switch (index)
         {

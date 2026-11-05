@@ -23,7 +23,8 @@ public static class FoodArt
         {
             case 0: Fruit(canvas, tier); break;
             case 1: Bakery(canvas, tier); break;
-            default: Drinks(canvas, tier); break;
+            case 2: Drinks(canvas, tier); break;
+            default: CollectionArt.Draw(canvas, family, tier); break;
         }
         canvas.DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
     }
