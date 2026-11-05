@@ -1,0 +1,19 @@
+name: Build Merge Harvest
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore MergeHarvest.csproj
+      - name: Compile C# game
+        run: dotnet build MergeHarvest.csproj --no-restore --configuration Release
