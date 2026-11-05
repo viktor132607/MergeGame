@@ -26,6 +26,7 @@ public sealed class SaveData
     public int Coins { get; set; } = 100;
     public int CompletedOrders { get; set; }
     public int TotalMerges { get; set; }
+    public int SelectedGenerator { get; set; }
     public CardAlbumState Album { get; set; } = new();
     public TownState Town { get; set; } = new();
     public TileData?[] Tiles { get; set; } = new TileData?[FoodCatalog.CellCount];
@@ -37,21 +38,14 @@ public static class FoodCatalog
     public const int Columns = 7;
     public const int Rows = 7;
     public const int CellCount = Columns * Rows;
-    public const int Families = 3;
-    public const int MaxTier = 10;
+    public const int Families = CollectionCatalog.TotalCount;
+    public const int MaxTier = CollectionCatalog.ItemsPerCollection;
 
-    public static readonly string[] FamilyNames = { "Orchard", "Bakery", "Drinks" };
-    public static readonly string[] GeneratorNames = { "Orchard basket", "Bakery oven", "Drink station" };
-    public static readonly string[][] Names =
-    {
-        new[] { "Seed", "Sprout", "Berry", "Apple", "Lemon", "Grapes", "Fruit Bowl", "Smoothie", "Jam Set", "Feast" },
-        new[] { "Flour", "Dough", "Cookie", "Croissant", "Cupcake", "Tart", "Pie", "Cake", "Dessert Set", "Banquet" },
-        new[] { "Water", "Tea", "Juice", "Milkshake", "Coffee", "Iced Latte", "Punch", "Soda", "Fancy Cup", "Golden Drink" }
-    };
+    public static readonly string[] FamilyNames = CollectionCatalog.FamilyNames;
+    public static readonly string[] GeneratorNames = CollectionCatalog.GeneratorNames;
+    public static readonly string[][] Names = CollectionCatalog.Names;
 
-    public static string Name(int family, int tier) =>
-        family >= 0 && family < Families && tier >= 1 && tier <= MaxTier
-            ? Names[family][tier - 1] : "Unknown";
+    public static string Name(int family, int tier) => CollectionCatalog.ItemName(family, tier);
 }
 
 public sealed class GameData
@@ -92,7 +86,7 @@ public sealed class GameData
         State = new SaveData();
         Selected = -1;
         ClearHints();
-        for (int family = 0; family < FoodCatalog.Families; family++)
+        for (int family = 0; family < CollectionCatalog.BaseCount; family++)
         {
             for (int i = 0; i < 4; i++) PlaceRandomly(new TileData { Family = family, Tier = 1 });
             for (int i = 0; i < 2; i++) PlaceRandomly(new TileData { Family = family, Tier = 2 });
@@ -115,10 +109,12 @@ public sealed class GameData
         State.Experience = Math.Max(0, State.Experience);
         State.CompletedOrders = Math.Max(0, State.CompletedOrders);
         State.TotalMerges = Math.Max(0, State.TotalMerges);
+        State.SelectedGenerator = Math.Clamp(State.SelectedGenerator, 0, CollectionCatalog.TotalCount - 1);
         State.Album ??= new CardAlbumState();
         CardAlbum.Normalize(State.Album);
         State.Town ??= new TownState();
         TownSystem.Normalize(State.Town);
+        if (!CollectionCatalog.IsUnlocked(State.SelectedGenerator, Town)) State.SelectedGenerator = 0;
         while (State.Orders.Count < 3) State.Orders.Add(GenerateOrder());
         if (State.Orders.Count > 3) State.Orders = State.Orders.Take(3).ToList();
         Selected = -1;
@@ -138,7 +134,14 @@ public sealed class GameData
 
     public bool Spawn(int family)
     {
-        if (family < 0 || family >= FoodCatalog.Families) return false;
+        if (!CollectionCatalog.IsValid(family)) return false;
+        if (!CollectionCatalog.IsUnlocked(family, Town))
+        {
+            Message = "Construct " + TownCatalog.Buildings[CollectionCatalog.BuildingForFamily(family)].Name +
+                      " to unlock this collection.";
+            return false;
+        }
+        State.SelectedGenerator = family;
         int roll = _random.Next(100);
         int tier = roll < 72 ? 1 : roll < 96 ? 2 : 3;
         if (State.Level < 3 && tier == 3) tier = 2;
@@ -252,8 +255,23 @@ public sealed class GameData
 
     private OrderData GenerateOrder()
     {
-        int family = _random.Next(FoodCatalog.Families);
-        int maxTier = Math.Min(7, 3 + (State.Level - 1) / 2);
+        // Orders only request collections whose generator the player owns.
+        // Favor the actively selected collection and items already present on the board.
+        int[] families = CollectionCatalog.UnlockedFamilies(Town).ToArray();
+        int family;
+        int roll = _random.Next(100);
+        if (roll < 45 && families.Contains(State.SelectedGenerator))
+            family = State.SelectedGenerator;
+        else if (roll < 75)
+        {
+            var existing = State.Tiles.Where(t => t != null && families.Contains(t.Family))
+                .Select(t => t!.Family).Distinct().ToArray();
+            family = existing.Length > 0 ? existing[_random.Next(existing.Length)] :
+                families[_random.Next(families.Length)];
+        }
+        else
+            family = families[_random.Next(families.Length)];
+        int maxTier = Math.Min(5, 3 + (State.Level - 1) / 4);
         int tier = _random.Next(2, maxTier + 1);
         return new OrderData
         {
@@ -262,6 +280,14 @@ public sealed class GameData
             Coins = 8 + tier * tier * 5,
             Experience = 10 + tier * 12
         };
+    }
+
+    public bool SelectGenerator(int family)
+    {
+        if (!CollectionCatalog.IsUnlocked(family, Town)) return false;
+        State.SelectedGenerator = family;
+        Message = CollectionCatalog.GeneratorNames[family] + " ready — unlimited items.";
+        return true;
     }
 
     public bool Recycle()
