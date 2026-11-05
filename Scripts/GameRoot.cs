@@ -57,7 +57,7 @@ public partial class GameRoot : Control
         AddChild(center);
 
         var main = Panel(new Color("#167F78"), 17, new Color("#FFF1B9"), 4, 26);
-        main.CustomMinimumSize = new Vector2(950, 886);
+        main.CustomMinimumSize = new Vector2(1760, 1020);
         center.AddChild(main);
 
         var vertical = new VBoxContainer();
