@@ -35,6 +35,14 @@ jobs:
       - name: Import Godot resources
         run: |
           "$GODOT_BIN" --headless --path . --editor --import --quit
+      - name: Smoke test game scene
+        run: |
+          set -o pipefail
+          "$GODOT_BIN" --headless --path . --quit-after 20 2>&1 | tee /tmp/merge-game-smoke.log
+          if grep -E 'ERROR:|Unhandled Exception|FATAL:' /tmp/merge-game-smoke.log; then
+            echo "Game scene produced runtime errors"
+            exit 1
+          fi
       - name: Export Windows executable
         run: |
           mkdir -p dist
