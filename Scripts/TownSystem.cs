@@ -143,8 +143,16 @@ public sealed class TownSystem
         // Celebrate the upgrade with an additional free card pack.
         State.SelectedBuilding = id;
         _game.State.Album.Packs++;
-        _game.SetMessage(TownCatalog.Buildings[id].Name + " built to stage " + stage +
-            "! Bonus XP and a card pack awarded.");
+        if (stage == 1)
+        {
+            int family = CollectionCatalog.FamilyForBuilding(id);
+            _game.State.SelectedGenerator = family;
+            _game.SetMessage(TownCatalog.Buildings[id].Name + " built! NEW MERGE COLLECTION: " +
+                CollectionCatalog.FamilyNames[family] + " — 10 items and an unlimited generator unlocked. +1 card pack!");
+        }
+        else
+            _game.SetMessage(TownCatalog.Buildings[id].Name + " upgraded to stage " + stage +
+                "! Bonus XP and a card pack awarded.");
         return true;
     }
 
