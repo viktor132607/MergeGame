@@ -33,6 +33,11 @@ public partial class GameRoot : Control
     {
         Load();
         Build();
+        if (Environment.GetEnvironmentVariable("MERGE_CARD_TEST") == "1")
+        {
+            CardAlbumChecks.Run();
+            _album.Open();
+        }
         Refresh();
     }
 
