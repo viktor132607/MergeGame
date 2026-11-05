@@ -28,7 +28,7 @@ public static class CollectionChecks
                 CollectionCatalog.BuildingForFamily(id + 3) == id, "mapping for building " + id);
 
         int starter = game.State.Tiles.Count(t => t != null);
-        Check(starter == 18, "original starting board size remains intact");
+        Check(starter == 21, "18 original items and three on-board starter generators");
         Check(CollectionCatalog.UnlockedFamilies(game.Town).Count() == 3, "three starter chains");
         Check(!game.Spawn(3), "cannot generate an unbuilt cafe collection");
         Check(game.State.Tiles.Count(t => t != null) == starter, "locked generators don't alter board");
