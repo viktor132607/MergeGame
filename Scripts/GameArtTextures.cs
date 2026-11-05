@@ -46,7 +46,7 @@ public static class GameArtTextures
         return Load($"res://Assets/Materials/{type}.svg");
     }
 
-    public static Texture2D? Tile(TileData tile) => tile.Kind switch
+    public static Texture2D? Tile(MergeHarvest.TileData tile) => tile.Kind switch
     {
         TileKind.Generator => Generator(tile.Family),
         TileKind.GeneratorPart => Part(tile.Tier),
