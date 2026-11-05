@@ -1,0 +1,22 @@
+# Godot editor cache
+.godot/
+.import/
+*.translation
+
+# .NET
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.csproj.user
+
+# Exports
+build/
+dist/
+*.pck
+*.exe
+*.zip
+
+# Local saves
+merge_harvest_save.json
