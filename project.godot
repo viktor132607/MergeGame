@@ -1,6 +1,4 @@
-; Engine configuration file.
-; Merge Harvest — offline Windows merge game.
-
+; Merge Harvest -- free Windows merge game.
 config_version=5
 
 [application]
@@ -13,9 +11,9 @@ config/description="Unlimited-energy offline food merge game"
 [display]
 
 window/size/viewport_width=1280
-window/size/viewport_height=850
+window/size/viewport_height=950
 window/size/window_width_override=1280
-window/size/window_height_override=850
+window/size/window_height_override=950
 window/stretch/mode="canvas_items"
 
 [rendering]

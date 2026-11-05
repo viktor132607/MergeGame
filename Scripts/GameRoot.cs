@@ -4,33 +4,33 @@ using System;
 using System.IO;
 using System.Text.Json;
 
+// Tasty-Travels-like casual merge layout, built exclusively from original Godot UI and vector drawing.
 public partial class GameRoot : Control
 {
     private const string SaveFile = "user://merge_harvest_save.json";
     private readonly GameData _game = new();
     private BoardView _board = null!;
-    private Label _levelText = null!;
-    private Label _coinsText = null!;
-    private Label _ordersText = null!;
-    private Label _mergesText = null!;
-    private Label _statusText = null!;
-    private ProgressBar _experienceBar = null!;
-    private VBoxContainer _ordersContainer = null!;
+    private Label _level = null!;
+    private Label _coins = null!;
+    private Label _energy = null!;
+    private Label _served = null!;
+    private Label _status = null!;
+    private ProgressBar _progress = null!;
+    private HBoxContainer _orders = null!;
     private bool _resetPending;
 
-    internal static readonly Color Ink = new("#33424A");
-    internal static readonly Color Muted = new("#73858C");
-    internal static readonly Color Cream = new("#FFF9ED");
-    internal static readonly Color Plum = new("#695F9B");
-    internal static readonly Color[] FamilyColors =
-    {
-        new("#EF7772"), new("#D99452"), new("#61B7BB")
-    };
+    private static readonly Color Navy = new("#316274");
+    private static readonly Color Teal = new("#168D80");
+    private static readonly Color DeepTeal = new("#086C70");
+    private static readonly Color Cream = new("#FFF9E7");
+    private static readonly Color Brown = new("#865B50");
+    private static readonly Color Coral = new("#F68D72");
+    private static readonly Color Gold = new("#FFC34F");
 
     public override void _Ready()
     {
         Load();
-        BuildInterface();
+        Build();
         Refresh();
     }
 
@@ -39,170 +39,305 @@ public partial class GameRoot : Control
         if (what == NotificationWMCloseRequest) Save();
     }
 
-    private void BuildInterface()
+    private void Build()
     {
-        var background = new ColorRect
+        var backdrop = new BeachBackdrop { MouseFilter = MouseFilterEnum.Ignore };
+        backdrop.SetAnchorsPreset(LayoutPreset.FullRect);
+        AddChild(backdrop);
+
+        var center = new CenterContainer();
+        center.SetAnchorsPreset(LayoutPreset.FullRect);
+        AddChild(center);
+
+        var main = Panel(new Color("#167F78"), 17, new Color("#FFF1B9"), 4, 26);
+        main.CustomMinimumSize = new Vector2(950, 886);
+        center.AddChild(main);
+
+        var vertical = new VBoxContainer();
+        vertical.AddThemeConstantOverride("separation", 8);
+        main.AddChild(vertical);
+
+        BuildHeader(vertical);
+
+        var awning = new AwningView
         {
-            Color = new Color("#F4F5ED"),
+            CustomMinimumSize = new Vector2(0, 28),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
             MouseFilter = MouseFilterEnum.Ignore
         };
-        background.SetAnchorsPreset(LayoutPreset.FullRect);
-        AddChild(background);
+        vertical.AddChild(awning);
 
-        var page = new MarginContainer();
-        page.SetAnchorsPreset(LayoutPreset.FullRect);
-        page.AddThemeConstantOverride("margin_left", 28);
-        page.AddThemeConstantOverride("margin_right", 28);
-        page.AddThemeConstantOverride("margin_top", 18);
-        page.AddThemeConstantOverride("margin_bottom", 16);
-        AddChild(page);
+        var orderShelf = Panel(new Color("#C78D62"), 10, new Color("#966548"), 2, 17);
+        vertical.AddChild(orderShelf);
+        _orders = new HBoxContainer();
+        _orders.AddThemeConstantOverride("separation", 10);
+        orderShelf.AddChild(_orders);
 
-        var column = new VBoxContainer();
-        column.AddThemeConstantOverride("separation", 13);
-        page.AddChild(column);
-
-        var header = new HBoxContainer { CustomMinimumSize = new Vector2(0, 74) };
-        header.AddThemeConstantOverride("separation", 14);
-        column.AddChild(header);
-
-        var brand = new VBoxContainer();
-        brand.AddThemeConstantOverride("separation", 0);
-        brand.CustomMinimumSize = new Vector2(265, 0);
-        header.AddChild(brand);
-        brand.AddChild(MakeLabel("MERGE HARVEST", 28, Ink, true));
-        brand.AddChild(MakeLabel("A cozy, endless food-merging game", 13, Muted));
-
-        var expanding = new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        header.AddChild(expanding);
-
-        header.AddChild(MakePill("NO ADS  •  NO PAYMENTS", new Color("#E9F5E9"), new Color("#477653"), 14));
-        header.AddChild(MakePill("UNLIMITED ENERGY", new Color("#E7F6F5"), new Color("#398B8D"), 14));
-
-        var statsRow = new HBoxContainer();
-        statsRow.AddThemeConstantOverride("separation", 14);
-        column.AddChild(statsRow);
-
-        var levelPanel = MakePanel(new Color("#FFFDF7"), 18, new Color("#E8E6DA"));
-        levelPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        statsRow.AddChild(levelPanel);
-        var levelLayout = new VBoxContainer();
-        levelLayout.AddThemeConstantOverride("separation", 6);
-        levelPanel.AddChild(levelLayout);
-        _levelText = MakeLabel("LEVEL 1", 16, Ink, true);
-        levelLayout.AddChild(_levelText);
-        _experienceBar = new ProgressBar
+        var middle = new HBoxContainer
         {
-            CustomMinimumSize = new Vector2(0, 12),
-            ShowPercentage = false,
-            MinValue = 0,
-            MaxValue = 100,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill
-        };
-        _experienceBar.AddThemeStyleboxOverride("background", BoxStyle(new Color("#EEEDE4"), 8));
-        _experienceBar.AddThemeStyleboxOverride("fill", BoxStyle(new Color("#8ACDA0"), 8));
-        levelLayout.AddChild(_experienceBar);
-
-        var coinPanel = MakePanel(new Color("#FFF2D7"), 18, new Color("#F2E0B6"));
-        coinPanel.CustomMinimumSize = new Vector2(184, 0);
-        statsRow.AddChild(coinPanel);
-        var coinLayout = new VBoxContainer();
-        coinPanel.AddChild(coinLayout);
-        coinLayout.AddChild(MakeLabel("COINS EARNED", 12, new Color("#917A4D"), true));
-        _coinsText = MakeLabel("100", 24, new Color("#B27829"), true);
-        coinLayout.AddChild(_coinsText);
-
-        var body = new HBoxContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
-        body.AddThemeConstantOverride("separation", 14);
-        column.AddChild(body);
-
-        var leftPanel = MakePanel(new Color("#FFFDF8"), 20, new Color("#E5E4D9"));
-        leftPanel.CustomMinimumSize = new Vector2(248, 550);
-        body.AddChild(leftPanel);
-
-        var leftColumn = new VBoxContainer();
-        leftColumn.AddThemeConstantOverride("separation", 11);
-        leftPanel.AddChild(leftColumn);
-        leftColumn.AddChild(MakeLabel("TODAY'S ORDERS", 20, Ink, true));
-        leftColumn.AddChild(MakeLabel("Find each dish on the board, then serve it.", 13, Muted, false, true));
-        _ordersContainer = new VBoxContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
-        _ordersContainer.AddThemeConstantOverride("separation", 13);
-        leftColumn.AddChild(_ordersContainer);
-        _ordersText = MakeLabel("", 13, Muted);
-        leftColumn.AddChild(_ordersText);
-
-        var boardPanel = MakePanel(new Color("#FFFDF7"), 18, new Color("#E4E5DC"));
-        boardPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        boardPanel.SizeFlagsVertical = SizeFlags.ExpandFill;
-        boardPanel.CustomMinimumSize = new Vector2(576, 550);
-        body.AddChild(boardPanel);
-
-        var boardColumn = new VBoxContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
-        boardColumn.AddThemeConstantOverride("separation", 7);
-        boardPanel.AddChild(boardColumn);
-        var boardHeader = new HBoxContainer();
-        boardColumn.AddChild(boardHeader);
-        boardHeader.AddChild(MakeLabel("YOUR MERGE BOARD", 18, Ink, true));
-        boardHeader.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
-        boardHeader.AddChild(MakeLabel("7 × 7", 14, Muted, true));
-        _board = new BoardView(_game)
-        {
-            CustomMinimumSize = new Vector2(535, 505),
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-            MouseFilter = MouseFilterEnum.Stop
+            SizeFlagsVertical = SizeFlags.ExpandFill
         };
-        _board.ActionFinished += BoardAction;
-        boardColumn.AddChild(_board);
+        middle.AddThemeConstantOverride("separation", 11);
+        vertical.AddChild(middle);
 
-        var rightPanel = MakePanel(new Color("#FFFDF8"), 18, new Color("#E5E4D9"));
-        rightPanel.CustomMinimumSize = new Vector2(218, 550);
-        body.AddChild(rightPanel);
+        BuildGenerators(middle);
+        BuildBoard(middle);
+        BuildTools(middle);
 
-        var rightColumn = new VBoxContainer();
-        rightColumn.AddThemeConstantOverride("separation", 14);
-        rightPanel.AddChild(rightColumn);
-        rightColumn.AddChild(MakeLabel("HOW TO PLAY", 20, Ink, true));
-        AddHelp(rightColumn, "01", "GENERATE", "Use the three buttons below. Every item is free.");
-        AddHelp(rightColumn, "02", "MERGE", "Drag matching items together, or click both.");
-        AddHelp(rightColumn, "03", "SERVE", "Complete food orders to earn coins and XP.");
-        AddHelp(rightColumn, "04", "DISCOVER", "Unlock higher tiers and level up forever.");
-        var rule = new HSeparator();
-        rightColumn.AddChild(rule);
-        rightColumn.AddChild(MakeLabel("YOUR KITCHEN", 13, Muted, true));
-        _mergesText = MakeLabel("", 15, Ink, true);
-        rightColumn.AddChild(_mergesText);
-        rightColumn.AddChild(MakeLabel("No timers. No energy limit. No purchases. No story dialogue.", 13, Muted, false, true));
-
-        var actions = new HBoxContainer { CustomMinimumSize = new Vector2(0, 54) };
-        actions.AddThemeConstantOverride("separation", 10);
-        column.AddChild(actions);
-        actions.AddChild(MakeButton("ORCHARD +", new Color("#E77E78"), () => Spawn(0), 145));
-        actions.AddChild(MakeButton("BAKERY +", new Color("#D99D62"), () => Spawn(1), 136));
-        actions.AddChild(MakeButton("DRINKS +", new Color("#6AB3BB"), () => Spawn(2), 138));
-        actions.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
-        actions.AddChild(MakeButton("HINT", new Color("#8687B7"), () => { _game.ShowHint(); Refresh(); }, 82));
-        actions.AddChild(MakeButton("ORGANIZE", new Color("#738A90"), () => Changed(_game.Organize()), 115));
-        actions.AddChild(MakeButton("RECYCLE SELECTED", new Color("#B87987"), () => Changed(_game.Recycle()), 170));
-        actions.AddChild(MakeButton("RESET", new Color("#A4A29E"), ResetPressed, 80));
-
-        var messagePanel = MakePanel(new Color("#E7EFE8"), 12, new Color("#D4E5DA"));
-        column.AddChild(messagePanel);
-        _statusText = MakeLabel("", 14, new Color("#49665B"), true, true);
-        messagePanel.AddChild(_statusText);
+        BuildFooter(vertical);
     }
 
-    private void AddHelp(VBoxContainer parent, string number, string heading, string description)
+    private void BuildHeader(VBoxContainer parent)
     {
-        var row = new HBoxContainer();
-        row.AddThemeConstantOverride("separation", 8);
+        var row = new HBoxContainer { CustomMinimumSize = new Vector2(0, 66) };
+        row.AddThemeConstantOverride("separation", 11);
         parent.AddChild(row);
-        row.AddChild(MakePill(number, new Color("#EDECF6"), Plum, 12));
-        var content = new VBoxContainer();
-        content.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        content.AddThemeConstantOverride("separation", 2);
-        row.AddChild(content);
-        content.AddChild(MakeLabel(heading, 13, Ink, true));
-        content.AddChild(MakeLabel(description, 12, Muted, false, true));
+
+        var brand = new VBoxContainer { CustomMinimumSize = new Vector2(245, 0) };
+        brand.AddThemeConstantOverride("separation", 0);
+        row.AddChild(brand);
+        brand.AddChild(LabelText("MERGE HARVEST", 28, new Color("#FFF1AC"), true));
+        brand.AddChild(LabelText("SUMMER KITCHEN  •  FREE PLAY", 12,
+            new Color("#D1F0D6"), true));
+
+        row.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
+
+        var badge = Panel(new Color("#FFF0BD"), 11, new Color("#E6AC62"), 3, 30);
+        badge.CustomMinimumSize = new Vector2(100, 55);
+        var badgeContent = new VBoxContainer();
+        badgeContent.AddThemeConstantOverride("separation", 0);
+        badge.AddChild(badgeContent);
+        badgeContent.AddChild(LabelText("★  LEVEL", 11, new Color("#B7833C"), true));
+        _level = LabelText("1", 22, new Color("#9E5D3C"), true);
+        badgeContent.AddChild(_level);
+        row.AddChild(badge);
+
+        _energy = LabelText("∞", 20, new Color("#FFFFFF"), true);
+        row.AddChild(Stat("⚡ ENERGY", _energy, new Color("#289BC8"), 128));
+
+        _coins = LabelText("100", 20, new Color("#FFF2A5"), true);
+        row.AddChild(Stat("● COINS", _coins, new Color("#416E8E"), 133));
+    }
+
+    private static PanelContainer Stat(string name, Label value, Color fill, float width)
+    {
+        var panel = Panel(fill, 8, new Color("#D3EDED", 0.75f), 2, 27);
+        panel.CustomMinimumSize = new Vector2(width, 53);
+        var stack = new VBoxContainer();
+        stack.AddThemeConstantOverride("separation", 0);
+        panel.AddChild(stack);
+        stack.AddChild(LabelText(name, 11, new Color("#EAF8FF"), true));
+        stack.AddChild(value);
+        return panel;
+    }
+
+    private void BuildGenerators(HBoxContainer middle)
+    {
+        var panel = Panel(new Color("#E9F6D9"), 10, new Color("#C5DFB5"), 2, 19);
+        panel.CustomMinimumSize = new Vector2(133, 0);
+        middle.AddChild(panel);
+
+        var column = new VBoxContainer();
+        column.AddThemeConstantOverride("separation", 10);
+        panel.AddChild(column);
+        var heading = LabelText("GENERATORS", 13, DeepTeal, true);
+        heading.HorizontalAlignment = HorizontalAlignment.Center;
+        column.AddChild(heading);
+
+        string[] names = { "FRUITS", "BAKERY", "DRINKS" };
+        Color[] fills = { new("#F7AA75"), new("#EFC26F"), new("#89D4D8") };
+        for (int family = 0; family < 3; family++)
+        {
+            int index = family;
+            var card = Panel(fills[family], 7, new Color("#FFFFFF", 0.8f), 2, 15);
+            card.SizeFlagsVertical = SizeFlags.ExpandFill;
+            column.AddChild(card);
+
+            var content = new VBoxContainer();
+            content.AddThemeConstantOverride("separation", 2);
+            card.AddChild(content);
+            var preview = new FoodPreview
+            {
+                Family = family,
+                Tier = family == 0 ? 7 : family == 1 ? 5 : 4,
+                CustomMinimumSize = new Vector2(0, 60),
+                SizeFlagsVertical = SizeFlags.ExpandFill
+            };
+            content.AddChild(preview);
+            var label = LabelText(names[family], 12, Brown, true);
+            label.HorizontalAlignment = HorizontalAlignment.Center;
+            content.AddChild(label);
+            var button = Button("FREE +", new Color("#59B866"),
+                () => Spawn(index), 33);
+            content.AddChild(button);
+        }
+
+        var energy = LabelText("⚡  UNLIMITED", 12, new Color("#258A87"), true);
+        energy.HorizontalAlignment = HorizontalAlignment.Center;
+        column.AddChild(energy);
+    }
+
+    private void BuildBoard(HBoxContainer middle)
+    {
+        var panel = Panel(new Color("#F9D5B5"), 7, new Color("#FCEB9B"), 3, 20);
+        panel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        panel.SizeFlagsVertical = SizeFlags.ExpandFill;
+        panel.CustomMinimumSize = new Vector2(525, 505);
+        middle.AddChild(panel);
+        var layout = new VBoxContainer();
+        layout.AddThemeConstantOverride("separation", 4);
+        panel.AddChild(layout);
+
+        var caption = new HBoxContainer { CustomMinimumSize = new Vector2(0, 26) };
+        caption.AddThemeConstantOverride("separation", 8);
+        layout.AddChild(caption);
+        caption.AddChild(LabelText("✦  MERGE BOARD", 15, Brown, true));
+        caption.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
+        caption.AddChild(LabelText("DRAG TO MERGE", 11, new Color("#B47C68"), true));
+
+        _board = new BoardView(_game)
+        {
+            CustomMinimumSize = new Vector2(505, 505),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill
+        };
+        _board.ActionFinished += BoardAction;
+        layout.AddChild(_board);
+    }
+
+    private void BuildTools(HBoxContainer middle)
+    {
+        var panel = Panel(new Color("#E4F7F1"), 9, new Color("#B5D9CE"), 2, 20);
+        panel.CustomMinimumSize = new Vector2(139, 0);
+        middle.AddChild(panel);
+        var column = new VBoxContainer();
+        column.AddThemeConstantOverride("separation", 10);
+        panel.AddChild(column);
+
+        var title = LabelText("BOOSTERS", 13, DeepTeal, true);
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        column.AddChild(title);
+
+        Tool(column, "✦", "HINT", new Color("#D9A64D"),
+            () => { _game.ShowHint(); Refresh(); });
+        Tool(column, "↔", "ORGANIZE", new Color("#75B7C9"), () => Changed(_game.Organize()));
+        Tool(column, "✕", "RECYCLE", new Color("#E78E83"), () => Changed(_game.Recycle()));
+
+        column.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
+
+        var stats = Panel(new Color("#FFF8DE"), 9, new Color("#E0D5AA"), 1, 15);
+        column.AddChild(stats);
+        var statsContent = new VBoxContainer();
+        statsContent.AddThemeConstantOverride("separation", 3);
+        stats.AddChild(statsContent);
+        statsContent.AddChild(LabelText("SERVED", 11, new Color("#8B886F"), true));
+        _served = LabelText("0 ORDERS", 15, Brown, true);
+        statsContent.AddChild(_served);
+
+        var reset = Button("NEW GAME", new Color("#9AA7A0"), ResetPressed, 32);
+        column.AddChild(reset);
+    }
+
+    private static void Tool(VBoxContainer parent, string symbol, string text, Color color, Action action)
+    {
+        var wrapper = Panel(color, 7, new Color("#FFFFFF", 0.9f), 2, 15);
+        wrapper.CustomMinimumSize = new Vector2(0, 88);
+        parent.AddChild(wrapper);
+        var vertical = new VBoxContainer();
+        vertical.AddThemeConstantOverride("separation", 4);
+        wrapper.AddChild(vertical);
+        var icon = LabelText(symbol, 25, Colors.White, true);
+        icon.HorizontalAlignment = HorizontalAlignment.Center;
+        vertical.AddChild(icon);
+        vertical.AddChild(Button(text, color.Darkened(0.16f), action, 31));
+    }
+
+    private void BuildFooter(VBoxContainer parent)
+    {
+        var footer = Panel(new Color("#FFF5CF"), 9, new Color("#F1D991"), 2, 16);
+        parent.AddChild(footer);
+        var column = new VBoxContainer();
+        column.AddThemeConstantOverride("separation", 4);
+        footer.AddChild(column);
+
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 12);
+        column.AddChild(row);
+        row.AddChild(LabelText("TRAVEL PROGRESS", 12, Brown, true));
+
+        _progress = new ProgressBar
+        {
+            MinValue = 0,
+            MaxValue = 100,
+            Value = 0,
+            ShowPercentage = false,
+            CustomMinimumSize = new Vector2(390, 14),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill
+        };
+        _progress.AddThemeStyleboxOverride("background",
+            Style(new Color("#E5CCB0"), new Color("#FFFFFF"), 1, 9));
+        _progress.AddThemeStyleboxOverride("fill",
+            Style(new Color("#73C57E"), new Color("#C7F7A9"), 1, 9));
+        row.AddChild(_progress);
+
+        row.AddChild(LabelText("MERGE • SERVE • REPEAT", 12, Teal, true));
+        _status = LabelText("", 14, Brown, true, true);
+        column.AddChild(_status);
+    }
+
+    private void RebuildOrders()
+    {
+        foreach (Node child in _orders.GetChildren())
+        {
+            _orders.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        for (int i = 0; i < _game.State.Orders.Count; i++)
+        {
+            int orderIndex = i;
+            OrderData item = _game.State.Orders[i];
+            bool ready = _game.CanServe(i);
+
+            var panel = Panel(new Color("#FFF9EF"), 8,
+                ready ? new Color("#9DD882") : new Color("#F3D8BC"), 3, 16);
+            panel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            panel.CustomMinimumSize = new Vector2(0, 104);
+            _orders.AddChild(panel);
+
+            var content = new HBoxContainer();
+            content.AddThemeConstantOverride("separation", 7);
+            panel.AddChild(content);
+            var preview = new FoodPreview
+            {
+                Family = item.Family,
+                Tier = item.Tier,
+                CustomMinimumSize = new Vector2(71, 76)
+            };
+            content.AddChild(preview);
+
+            var text = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            text.AddThemeConstantOverride("separation", 2);
+            content.AddChild(text);
+            text.AddChild(LabelText("ORDER " + (i + 1), 11, new Color("#BFA087"), true));
+            text.AddChild(LabelText(FoodCatalog.Name(item.Family, item.Tier), 15,
+                Brown, true, true));
+            text.AddChild(LabelText("●  +" + item.Coins + "   ★ +" + item.Experience,
+                11, new Color("#D29B4B"), true));
+
+            var serve = Button(ready ? "SERVE ✓" : "MAKE ITEM",
+                ready ? new Color("#74C655") : new Color("#D6AF8D"),
+                () => Changed(_game.Serve(orderIndex)), 29);
+            serve.CustomMinimumSize = new Vector2(0, 28);
+            text.AddChild(serve);
+        }
+    }
+
+    private void BoardAction(bool changed)
+    {
+        _resetPending = false;
+        Changed(changed);
     }
 
     private void Spawn(int family)
@@ -211,15 +346,9 @@ public partial class GameRoot : Control
         Changed(_game.Spawn(family));
     }
 
-    private void BoardAction(bool modified)
+    private void Changed(bool stateChanged)
     {
-        _resetPending = false;
-        Changed(modified);
-    }
-
-    private void Changed(bool modified)
-    {
-        if (modified) Save();
+        if (stateChanged) Save();
         Refresh();
     }
 
@@ -228,9 +357,10 @@ public partial class GameRoot : Control
         if (!_resetPending)
         {
             _resetPending = true;
-            _statusText.Text = "Press RESET once more to erase your local progress.";
+            _status.Text = "Press NEW GAME again to reset all saved progress.";
             return;
         }
+
         _resetPending = false;
         _game.NewGame();
         Save();
@@ -239,47 +369,14 @@ public partial class GameRoot : Control
 
     private void Refresh()
     {
-        _levelText.Text = "LEVEL " + _game.State.Level + "   •   " +
-                          _game.State.Experience + " / " + _game.ExperienceRequired + " XP";
-        _experienceBar.Value = 100.0 * _game.State.Experience / _game.ExperienceRequired;
-        _coinsText.Text = _game.State.Coins.ToString("N0");
-        _ordersText.Text = "Orders served: " + _game.State.CompletedOrders;
-        _mergesText.Text = _game.State.TotalMerges + " successful merges";
-        _statusText.Text = _game.Message;
+        _level.Text = _game.State.Level.ToString();
+        _energy.Text = "∞ FREE";
+        _coins.Text = _game.State.Coins.ToString("N0");
+        _served.Text = _game.State.CompletedOrders + " ORDERS";
+        _progress.Value = 100.0 * _game.State.Experience / _game.ExperienceRequired;
+        _status.Text = _game.Message;
         RebuildOrders();
         _board.QueueRedraw();
-    }
-
-    private void RebuildOrders()
-    {
-        foreach (Node child in _ordersContainer.GetChildren())
-        {
-            _ordersContainer.RemoveChild(child);
-            child.QueueFree();
-        }
-        for (int index = 0; index < _game.State.Orders.Count; index++)
-        {
-            int orderIndex = index;
-            var order = _game.State.Orders[index];
-            bool ready = _game.CanServe(index);
-            var card = MakePanel(ready ? new Color("#F0F9EF") : new Color("#F5F3F0"),
-                                 12, ready ? new Color("#B9DCC2") : new Color("#E5E5E0"));
-            _ordersContainer.AddChild(card);
-            var content = new VBoxContainer();
-            content.AddThemeConstantOverride("separation", 7);
-            card.AddChild(content);
-            content.AddChild(MakeLabel(FoodCatalog.FamilyNames[order.Family].ToUpperInvariant(),
-                                       11, FamilyColors[order.Family], true));
-            content.AddChild(MakeLabel(FoodCatalog.Name(order.Family, order.Tier),
-                                       16, Ink, true, true));
-            content.AddChild(MakeLabel("Tier " + order.Tier + "  •  +" + order.Coins + " coins  •  +" +
-                                      order.Experience + " XP", 11, Muted));
-            var serveButton = MakeButton(ready ? "SERVE ORDER ✓" : "FIND & MERGE",
-                ready ? new Color("#6BAA7D") : new Color("#B0ADB6"),
-                () => Changed(_game.Serve(orderIndex)), 0);
-            serveButton.CustomMinimumSize = new Vector2(0, 35);
-            content.AddChild(serveButton);
-        }
     }
 
     public override void _UnhandledKeyInput(InputEvent @event)
@@ -302,13 +399,13 @@ public partial class GameRoot : Control
     {
         try
         {
-            string filepath = ProjectSettings.GlobalizePath(SaveFile);
-            Directory.CreateDirectory(Path.GetDirectoryName(filepath)!);
-            File.WriteAllText(filepath, JsonSerializer.Serialize(_game.State));
+            string path = ProjectSettings.GlobalizePath(SaveFile);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, JsonSerializer.Serialize(_game.State));
         }
-        catch (Exception error)
+        catch (Exception ex)
         {
-            GD.PushWarning("Could not save the game: " + error.Message);
+            GD.PushWarning("Game save failed: " + ex.Message);
         }
     }
 
@@ -316,295 +413,118 @@ public partial class GameRoot : Control
     {
         try
         {
-            string filepath = ProjectSettings.GlobalizePath(SaveFile);
-            if (File.Exists(filepath))
-            {
-                SaveData? saved = JsonSerializer.Deserialize<SaveData>(File.ReadAllText(filepath));
-                _game.Restore(saved);
-            }
+            string path = ProjectSettings.GlobalizePath(SaveFile);
+            if (File.Exists(path))
+                _game.Restore(JsonSerializer.Deserialize<SaveData>(File.ReadAllText(path)));
         }
-        catch (Exception error)
+        catch (Exception ex)
         {
-            GD.PushWarning("Could not load the saved game: " + error.Message);
+            GD.PushWarning("Game save loading failed: " + ex.Message);
         }
     }
 
-    private static StyleBoxFlat BoxStyle(Color color, int rounding, Color? border = null)
-    {
-        var style = new StyleBoxFlat { BgColor = color, BorderColor = border ?? Colors.Transparent };
-        style.SetCornerRadiusAll(rounding);
-        if (border.HasValue) style.SetBorderWidthAll(1);
-        return style;
-    }
-
-    private static PanelContainer MakePanel(Color fill, int pad, Color border)
+    private static PanelContainer Panel(Color fill, int padding, Color border, int borderWidth, int radius)
     {
         var panel = new PanelContainer();
-        var style = BoxStyle(fill, 17, border);
-        style.ContentMarginLeft = pad;
-        style.ContentMarginRight = pad;
-        style.ContentMarginTop = pad;
-        style.ContentMarginBottom = pad;
+        var style = Style(fill, border, borderWidth, radius);
+        style.ContentMarginLeft = padding;
+        style.ContentMarginTop = padding;
+        style.ContentMarginRight = padding;
+        style.ContentMarginBottom = padding;
         panel.AddThemeStyleboxOverride("panel", style);
         return panel;
     }
 
-    private static Label MakeLabel(string text, int size, Color color, bool bold = false, bool wrap = false)
+    private static StyleBoxFlat Style(Color fill, Color border, int borderWidth, int radius)
     {
-        var label = new Label { Text = text };
+        var style = new StyleBoxFlat { BgColor = fill, BorderColor = border };
+        style.SetBorderWidthAll(borderWidth);
+        style.SetCornerRadiusAll(radius);
+        return style;
+    }
+
+    private static Label LabelText(string text, int size, Color color, bool bold = false, bool wrap = false)
+    {
+        var label = new Label
+        {
+            Text = text,
+            AutowrapMode = wrap ? TextServer.AutowrapMode.WordSmart : TextServer.AutowrapMode.Off,
+            VerticalAlignment = VerticalAlignment.Center
+        };
         label.AddThemeFontSizeOverride("font_size", size);
         label.AddThemeColorOverride("font_color", color);
-        label.AutowrapMode = wrap ? TextServer.AutowrapMode.WordSmart : TextServer.AutowrapMode.Off;
-        if (bold) label.AddThemeColorOverride("font_shadow_color", new Color(color, 0.08f));
+        if (bold)
+            label.AddThemeColorOverride("font_shadow_color", new Color(0f, 0f, 0f, 0.10f));
         return label;
     }
 
-    private static PanelContainer MakePill(string text, Color fill, Color ink, int size)
-    {
-        var panel = new PanelContainer();
-        var box = BoxStyle(fill, 13);
-        box.ContentMarginLeft = 13;
-        box.ContentMarginRight = 13;
-        box.ContentMarginTop = 10;
-        box.ContentMarginBottom = 10;
-        panel.AddThemeStyleboxOverride("panel", box);
-        panel.AddChild(MakeLabel(text, size, ink, true));
-        return panel;
-    }
-
-    private static Button MakeButton(string text, Color baseColor, Action pressed, float minWidth)
+    private static Button Button(string text, Color fill, Action clicked, int height)
     {
         var button = new Button
         {
             Text = text,
-            CustomMinimumSize = new Vector2(minWidth, 44),
+            CustomMinimumSize = new Vector2(0, height),
             FocusMode = FocusModeEnum.None,
             MouseDefaultCursorShape = CursorShape.PointingHand
         };
-        button.AddThemeStyleboxOverride("normal", ButtonBox(baseColor));
-        button.AddThemeStyleboxOverride("hover", ButtonBox(baseColor.Lightened(0.12f)));
-        button.AddThemeStyleboxOverride("pressed", ButtonBox(baseColor.Darkened(0.14f)));
-        button.AddThemeStyleboxOverride("focus", BoxStyle(Colors.Transparent, 12));
+        var normal = Style(fill, new Color("#FFFFFF", 0.42f), 2, 12);
+        normal.ContentMarginLeft = 8;
+        normal.ContentMarginRight = 8;
+        normal.ContentMarginTop = 4;
+        normal.ContentMarginBottom = 4;
+        button.AddThemeStyleboxOverride("normal", normal);
+        button.AddThemeStyleboxOverride("hover", Style(fill.Lightened(0.15f), Colors.White, 2, 12));
+        button.AddThemeStyleboxOverride("pressed", Style(fill.Darkened(0.1f), Colors.White, 2, 12));
+        button.AddThemeStyleboxOverride("focus", Style(Colors.Transparent, Colors.Transparent, 0, 12));
         button.AddThemeColorOverride("font_color", Colors.White);
         button.AddThemeColorOverride("font_hover_color", Colors.White);
         button.AddThemeColorOverride("font_pressed_color", Colors.White);
-        button.AddThemeFontSizeOverride("font_size", 13);
-        button.Pressed += pressed;
+        button.AddThemeFontSizeOverride("font_size", 12);
+        button.Pressed += clicked;
         return button;
-    }
-
-    private static StyleBoxFlat ButtonBox(Color color)
-    {
-        var style = BoxStyle(color, 12);
-        style.ContentMarginLeft = 9;
-        style.ContentMarginRight = 9;
-        style.ContentMarginTop = 7;
-        style.ContentMarginBottom = 7;
-        return style;
     }
 }
 
-public partial class BoardView : Control
+public partial class FoodPreview : Control
 {
-    private readonly GameData _game;
-    private int _held = -1;
-    private Vector2 _mouseStart;
-    private Vector2 _pointer;
-    private const float Gap = 7f;
-    public event Action<bool>? ActionFinished;
+    public int Family { get; set; }
+    public int Tier { get; set; }
 
-    public BoardView(GameData game) => _game = game;
-
-    private (float cell, float x, float y) Geometry()
+    public override void _Draw()
     {
-        float cell = Mathf.Min(
-            (Size.X - 12 - (FoodCatalog.Columns - 1) * Gap) / FoodCatalog.Columns,
-            (Size.Y - 12 - (FoodCatalog.Rows - 1) * Gap) / FoodCatalog.Rows);
-        cell = Mathf.Max(1, cell);
-        float width = cell * FoodCatalog.Columns + (FoodCatalog.Columns - 1) * Gap;
-        float height = cell * FoodCatalog.Rows + (FoodCatalog.Rows - 1) * Gap;
-        return (cell, (Size.X - width) / 2f, (Size.Y - height) / 2f);
+        if (Size.X < 1 || Size.Y < 1) return;
+        var center = Size / 2f;
+        float radius = Mathf.Min(Size.X, Size.Y) * 0.41f;
+        DrawCircle(center + new Vector2(0, 1), radius + 2f,
+                   new Color("#FFFFFF", 0.63f));
+        DrawCircle(center, radius, new Color("#FFF2D6", 0.86f));
+        FoodArt.Draw(this, center, radius * 0.80f, Family, Tier);
     }
+}
 
-    private int HitTest(Vector2 at)
+public partial class AwningView : Control
+{
+    public override void _Ready()
     {
-        var (size, x, y) = Geometry();
-        float localX = at.X - x;
-        float localY = at.Y - y;
-        if (localX < 0 || localY < 0) return -1;
-        int col = Mathf.FloorToInt(localX / (size + Gap));
-        int row = Mathf.FloorToInt(localY / (size + Gap));
-        if (col < 0 || col >= FoodCatalog.Columns || row < 0 || row >= FoodCatalog.Rows) return -1;
-        if (localX - col * (size + Gap) > size || localY - row * (size + Gap) > size) return -1;
-        return row * FoodCatalog.Columns + col;
-    }
-
-    public override void _GuiInput(InputEvent @event)
-    {
-        if (@event is InputEventMouseButton button && button.ButtonIndex == MouseButton.Left &&
-            button.Pressed)
-        {
-            _held = HitTest(button.Position);
-            _mouseStart = button.Position;
-            _pointer = button.Position;
-            if (_held >= 0) AcceptEvent();
-        }
-    }
-
-    public override void _Input(InputEvent @event)
-    {
-        if (_held < 0) return;
-        if (@event is InputEventMouseMotion)
-        {
-            _pointer = GetLocalMousePosition();
-            QueueRedraw();
-        }
-        else if (@event is InputEventMouseButton button && button.ButtonIndex == MouseButton.Left &&
-                 !button.Pressed)
-        {
-            int source = _held;
-            int destination = HitTest(GetLocalMousePosition());
-            _held = -1;
-            _pointer = _mouseStart;
-            if (destination >= 0)
-            {
-                ActionFinished?.Invoke(_game.Interact(source, destination));
-                GetViewport().SetInputAsHandled();
-            }
-            QueueRedraw();
-        }
+        Resized += QueueRedraw;
     }
 
     public override void _Draw()
     {
-        var (size, offsetX, offsetY) = Geometry();
-        for (int i = 0; i < FoodCatalog.CellCount; i++)
-        {
-            int row = i / FoodCatalog.Columns;
-            int col = i % FoodCatalog.Columns;
-            var rect = new Rect2(offsetX + col * (size + Gap),
-                                 offsetY + row * (size + Gap), size, size);
-            var tile = _game.State.Tiles[i];
-            bool selected = _game.Selected == i;
-            bool hinted = _game.HintOne == i || _game.HintTwo == i;
-            var color = (row + col) % 2 == 0 ? new Color("#F3F3E9") : new Color("#EBEEE7");
-            if (tile == null)
-            {
-                DrawRounded(rect, color, new Color("#E0E5DC"), 1);
-                DrawCircle(rect.GetCenter(), 4f, new Color("#D9DDD3"));
-                continue;
-            }
-            Color hue = GameRoot.FamilyColors[tile.Family];
-            var fill = new Color("#FFFFFF").Lerp(hue, 0.08f + tile.Tier * 0.017f);
-            DrawRounded(rect, fill,
-                selected ? new Color("#6275B5") : hinted ? new Color("#E7B951") : hue.Lightened(0.4f),
-                selected || hinted ? 3 : 1);
-            DrawIcon(rect.GetCenter() - new Vector2(0, size * 0.07f),
-                size * 0.23f, tile.Family, tile.Tier, hue);
-            DrawRounded(new Rect2(rect.Position + new Vector2(6, 6), new Vector2(31, 17)),
-                        hue, hue, 0, 7);
-            DrawString(GetThemeDefaultFont(), rect.Position + new Vector2(6, 19),
-                       "T" + tile.Tier, HorizontalAlignment.Center, 31, 11, Colors.White);
-            string name = FoodCatalog.Name(tile.Family, tile.Tier);
-            string[] parts = name.Split(' ', 2);
-            if (parts.Length == 2)
-            {
-                DrawString(GetThemeDefaultFont(),
-                    rect.Position + new Vector2(3, size - 22),
-                    parts[0], HorizontalAlignment.Center, size - 6, 11, GameRoot.Ink);
-                DrawString(GetThemeDefaultFont(),
-                    rect.Position + new Vector2(3, size - 9),
-                    parts[1], HorizontalAlignment.Center, size - 6, 11, GameRoot.Ink);
-            }
-            else
-            {
-                DrawString(GetThemeDefaultFont(),
-                    rect.Position + new Vector2(3, size - 11),
-                    name, HorizontalAlignment.Center, size - 6, 11, GameRoot.Ink);
-            }
-        }
+        float w = Size.X;
+        float h = Size.Y;
+        int segments = 18;
+        if (w < 1) return;
 
-        if (_held >= 0 && _game.State.Tiles[_held] is { } dragged &&
-            _mouseStart.DistanceTo(_pointer) > 12f)
+        for (int i = 0; i < segments; i++)
         {
-            DrawCircle(_pointer, size * 0.35f, new Color(1f, 1f, 1f, 0.82f));
-            DrawIcon(_pointer, size * 0.23f, dragged.Family, dragged.Tier,
-                     GameRoot.FamilyColors[dragged.Family]);
+            float x = i * w / segments;
+            float segmentWidth = w / segments + 1;
+            Color color = i % 2 == 0 ? new Color("#FCF9EB") : new Color("#79C8B2");
+            DrawRect(new Rect2(x, 0, segmentWidth, h * 0.70f), color);
+            DrawCircle(new Vector2(x + segmentWidth / 2f, h * 0.70f),
+                       segmentWidth / 2f, color);
         }
-    }
-
-    private void DrawRounded(Rect2 rect, Color fill, Color outline, int border, int radius = 12)
-    {
-        var shape = new StyleBoxFlat { BgColor = fill, BorderColor = outline };
-        shape.SetCornerRadiusAll(radius);
-        shape.SetBorderWidthAll(border);
-        DrawStyleBox(shape, rect);
-    }
-
-    // All icons are drawn in code. No copied assets or generated image files.
-    private void DrawIcon(Vector2 pos, float radius, int family, int tier, Color hue)
-    {
-        Color accent = hue.Lightened(0.22f);
-        if (family == 0)
-        {
-            // Orchard: fruit with leaves, seeds and a stem.
-            DrawCircle(pos + new Vector2(-radius * 0.32f, radius * 0.09f),
-                       radius * 0.68f, hue);
-            DrawCircle(pos + new Vector2(radius * 0.31f, radius * 0.09f),
-                       radius * 0.68f, accent);
-            DrawLine(pos - new Vector2(0, radius * 0.64f),
-                     pos - new Vector2(radius * 0.09f, radius * 1.08f),
-                     new Color("#668A5C"), 3);
-            DrawColoredPolygon(new[]
-            {
-                pos + new Vector2(0, -radius * 0.8f),
-                pos + new Vector2(radius * 0.62f, -radius * 1.2f),
-                pos + new Vector2(radius * 0.42f, -radius * 0.68f)
-            }, new Color("#7CAF7A"));
-            if (tier >= 3)
-                for (int i = 0; i < 3; i++)
-                    DrawCircle(pos + new Vector2((i - 1) * radius * 0.36f, radius * 0.25f),
-                               1.65f, new Color("#FFE5B1"));
-        }
-        else if (family == 1)
-        {
-            // Bakery: a pastry with icing and a wrapper.
-            var baseRect = new Rect2(pos - new Vector2(radius * 0.79f, radius * 0.05f),
-                                     new Vector2(radius * 1.58f, radius * 0.95f));
-            DrawRounded(baseRect, hue, hue, 0, 4);
-            DrawCircle(pos - new Vector2(radius * 0.45f, radius * 0.24f),
-                       radius * 0.44f, new Color("#F5C6B4"));
-            DrawCircle(pos - new Vector2(0, radius * 0.46f),
-                       radius * 0.53f, new Color("#F5B5B6"));
-            DrawCircle(pos + new Vector2(radius * 0.42f, -radius * 0.21f),
-                       radius * 0.42f, new Color("#F5C6B4"));
-            DrawCircle(pos - new Vector2(0, radius * 0.83f), radius * 0.12f,
-                       new Color("#C9586E"));
-            for (int i = -1; i <= 1; i++)
-                DrawLine(pos + new Vector2(i * radius * 0.33f, radius * 0.24f),
-                         pos + new Vector2(i * radius * 0.25f, radius * 0.7f),
-                         accent, 1.6f);
-        }
-        else
-        {
-            // Drinks: tapered glass, straw, garnish.
-            DrawColoredPolygon(new[]
-            {
-                pos + new Vector2(-radius * 0.74f, -radius * 0.52f),
-                pos + new Vector2(radius * 0.74f, -radius * 0.52f),
-                pos + new Vector2(radius * 0.49f, radius * 0.86f),
-                pos + new Vector2(-radius * 0.49f, radius * 0.86f)
-            }, hue);
-            DrawLine(pos + new Vector2(radius * 0.20f, -radius * 0.35f),
-                     pos + new Vector2(radius * 0.58f, -radius * 1.10f),
-                     new Color("#E889A7"), 3f);
-            DrawLine(pos + new Vector2(-radius * 0.55f, -radius * 0.29f),
-                     pos + new Vector2(radius * 0.55f, -radius * 0.29f),
-                     Colors.White, 2f);
-            DrawCircle(pos + new Vector2(-radius * 0.44f, -radius * 0.64f),
-                       radius * 0.22f, new Color("#F6D88C"));
-            DrawCircle(pos + new Vector2(radius * 0.14f, radius * 0.26f),
-                       radius * 0.10f, new Color(1f, 1f, 1f, 0.7f));
-        }
+        DrawRect(new Rect2(0, 0, w, 3), new Color("#B6E1C6"));
     }
 }
