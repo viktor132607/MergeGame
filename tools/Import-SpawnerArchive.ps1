@@ -76,7 +76,7 @@ try {
         exit 0
     }
 
-    & git -C $checkout -c user.name="MergeHarvest Asset Import" -c user.email="assets-import@users.noreply.github.com" commit -m "Import original ZIP and all 125 extracted spawner PNGs"
+    & git -C $checkout commit -m "Import original ZIP and all 125 extracted spawner PNGs"
     if ($LASTEXITCODE -ne 0) { throw "Git commit failed." }
     & git -C $checkout push origin main
     if ($LASTEXITCODE -ne 0) { throw "Git push failed. Check GitHub authentication and branch access." }
