@@ -38,8 +38,14 @@ jobs:
       - name: Export Windows executable
         run: |
           mkdir -p dist
-          "$GODOT_BIN" --headless --path . --export-release "Windows Desktop" "dist/MergeHarvest.exe"
+          set -o pipefail
+          "$GODOT_BIN" --headless --path . --export-release "Windows Desktop" "dist/MergeHarvest.exe" 2>&1 | tee /tmp/godot-export.log
+          if grep -E 'ERROR:|FAILURE:' /tmp/godot-export.log; then
+            echo "Godot reported an export error"
+            exit 1
+          fi
           test -s dist/MergeHarvest.exe
+          test -d dist/data_MergeHarvest_windows_x86_64
           find dist -type f -maxdepth 4 -print
       - uses: actions/upload-artifact@v4
         with:
