@@ -27,6 +27,7 @@ public sealed class SaveData
     public int CompletedOrders { get; set; }
     public int TotalMerges { get; set; }
     public CardAlbumState Album { get; set; } = new();
+    public TownState Town { get; set; } = new();
     public TileData?[] Tiles { get; set; } = new TileData?[FoodCatalog.CellCount];
     public List<OrderData> Orders { get; set; } = new();
 }
@@ -57,6 +58,7 @@ public sealed class GameData
 {
     private readonly Random _random = new();
     public CardAlbum Cards { get; }
+    public TownSystem Town { get; }
     public SaveData State { get; private set; } = new();
     public int Selected { get; private set; } = -1;
     public int HintOne { get; private set; } = -1;
@@ -67,6 +69,7 @@ public sealed class GameData
     public GameData()
     {
         Cards = new CardAlbum(this);
+        Town = new TownSystem(this);
         NewGame();
     }
 
@@ -114,6 +117,8 @@ public sealed class GameData
         State.TotalMerges = Math.Max(0, State.TotalMerges);
         State.Album ??= new CardAlbumState();
         CardAlbum.Normalize(State.Album);
+        State.Town ??= new TownState();
+        TownSystem.Normalize(State.Town);
         while (State.Orders.Count < 3) State.Orders.Add(GenerateOrder());
         if (State.Orders.Count > 3) State.Orders = State.Orders.Take(3).ToList();
         Selected = -1;
@@ -192,6 +197,7 @@ public sealed class GameData
             State.TotalMerges++;
             Message = "MERGED! Discovered " + FoodCatalog.Name(source.Family, source.Tier + 1) + ".";
             Cards.OnMergeCompleted();
+            Town.OnMergeCompleted();
         }
         else
         {
@@ -240,6 +246,7 @@ public sealed class GameData
             ? "ORDER COMPLETE! +" + order.Coins + " coins. Level " + State.Level + " reached!"
             : "ORDER COMPLETE! +" + order.Coins + " coins and +" + order.Experience + " XP.";
         Cards.OnOrderCompleted();
+        Town.OnOrderCompleted();
         return true;
     }
 
