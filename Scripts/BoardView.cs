@@ -144,7 +144,7 @@ public partial class BoardView : Control
                                   square.Size - new Vector2(10f, 12f));
             DrawStyleBox(Style(new Color("#9D5C79", 0.14f),
                 new Color("#B0637D", 0.09f), 1, 13),
-                plate + new Vector2(1f, 4f));
+                new Rect2(plate.Position + new Vector2(1f, 4f), plate.Size));
             DrawStyleBox(Style(alternate ? new Color("#FFF4E7") : new Color("#FFE5E1"),
                 new Color("#FFFFFF", 0.82f), 2, 13), plate);
             DrawLine(plate.Position + new Vector2(8f, 5f),

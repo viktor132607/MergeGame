@@ -242,7 +242,7 @@ public partial class GameRoot : Control
             new Color("#FFE9B8"), 5, 30);
         panel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         panel.SizeFlagsVertical = SizeFlags.ExpandFill;
-        panel.CustomMinimumSize = new Vector2(780, 730);
+        panel.CustomMinimumSize = new Vector2(780, 640);
         middle.AddChild(panel);
 
         var inner = new VBoxContainer();
@@ -257,7 +257,7 @@ public partial class GameRoot : Control
 
         _board = new BoardView(_game)
         {
-            CustomMinimumSize = new Vector2(700, 685),
+            CustomMinimumSize = new Vector2(650, 585),
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill
         };
