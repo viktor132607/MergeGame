@@ -622,18 +622,23 @@ public partial class GameRoot : Control
 
 public partial class FoodPreview : Control
 {
-    public int Family { get; set; }
-    public int Tier { get; set; }
+    private int _family;
+    private int _tier;
+    public int Family { get => _family; set { _family = value; QueueRedraw(); } }
+    public int Tier { get => _tier; set { _tier = value; QueueRedraw(); } }
 
     public override void _Draw()
     {
         if (Size.X < 1 || Size.Y < 1) return;
         var center = Size / 2f;
-        float radius = Mathf.Min(Size.X, Size.Y) * 0.41f;
-        DrawCircle(center + new Vector2(0, 1), radius + 2f,
-                   new Color("#FFFFFF", 0.63f));
-        DrawCircle(center, radius, new Color("#FFF2D6", 0.86f));
-        FoodArt.Draw(this, center, radius * 0.80f, Family, Tier);
+        float side = Mathf.Min(Size.X, Size.Y) * 0.88f;
+        DrawCircle(center + new Vector2(0, 2), side * 0.48f,
+            new Color("#FFFFFF", 0.46f));
+        var artwork = GameArtTextures.Item(Family, Tier);
+        if (artwork != null)
+            DrawTextureRect(artwork,
+                new Rect2(center - Vector2.One * side * 0.5f, Vector2.One * side),
+                false);
     }
 }
 

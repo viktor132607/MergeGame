@@ -161,13 +161,22 @@ public partial class BoardView : Control
                 DrawCornerMarks(plate, selected ? new Color("#15D8A2") : new Color("#F8D249"));
             }
 
-            float scale = Mathf.Clamp(cell * 0.58f, 25f, 63f);
-            if (tile.Kind == TileKind.Item)
-                FoodArt.Draw(this, square.GetCenter() + new Vector2(0, -4f), scale,
-                    tile.Family, tile.Tier);
-            else
-                SpawnerArt.Draw(this, square.GetCenter() + new Vector2(0, -2f),
-                    scale, tile.Family, tile.Tier, tile.Kind);
+            // Actual SVG assets from Assets/Items, Assets/Buildings and Assets/Materials.
+            // Each tier has its own imported illustration, not a placeholder drawing.
+            var texture = GameArtTextures.Tile(tile);
+            if (texture != null)
+            {
+                float pictureSize = cell * 0.91f;
+                var pictureRect = new Rect2(square.GetCenter() -
+                    new Vector2(pictureSize / 2f, pictureSize / 2f + 3f),
+                    new Vector2(pictureSize, pictureSize));
+                DrawTextureRect(texture, pictureRect, false);
+                if (tile.Kind == TileKind.Generator)
+                {
+                    DrawArc(square.GetCenter(), cell * 0.43f, 0, Mathf.Tau, 48,
+                        new Color("#58DBB0"), 3.4f, true);
+                }
+            }
 
 
             // Tiny tier medallion; no intrusive labels over the colorful illustrations.
@@ -203,11 +212,11 @@ public partial class BoardView : Control
             _mouseStart.DistanceTo(_pointer) > 10f)
         {
             DrawCircle(_pointer, cell * 0.42f, new Color("#FFFFFF", 0.72f));
-            if (dragged.Kind == TileKind.Item)
-                FoodArt.Draw(this, _pointer, cell * 0.48f, dragged.Family, dragged.Tier);
-            else
-                SpawnerArt.Draw(this, _pointer, cell * 0.48f,
-                    dragged.Family, dragged.Tier, dragged.Kind);
+            var draggedTexture = GameArtTextures.Tile(dragged);
+            if (draggedTexture != null)
+                DrawTextureRect(draggedTexture,
+                    new Rect2(_pointer - Vector2.One * cell * 0.51f,
+                        Vector2.One * cell * 1.02f), false);
         }
     }
 
