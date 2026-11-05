@@ -31,7 +31,7 @@ public static class FoodArt
     private static void Ellipse(CanvasItem c, float x, float y, float rx, float ry, Color fill)
     {
         // Smooth ellipse using 24 points rather than using a raster image.
-        var points = new Vector2[25];
+        var points = new Vector2[24];
         for (int i = 0; i < points.Length; i++)
         {
             float angle = Mathf.Tau * i / 24f;
