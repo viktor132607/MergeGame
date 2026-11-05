@@ -43,6 +43,7 @@ public partial class GameRoot : Control
         {
             CardAlbumChecks.Run();
             TownChecks.Run();
+            CollectionChecks.Run();
             _album.Open();
             _townView.Open();
         }
